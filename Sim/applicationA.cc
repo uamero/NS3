@@ -39,7 +39,6 @@ CustomApplication::CustomApplication ()
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
-  
 }
 CustomApplication::~CustomApplication ()
 {
@@ -55,7 +54,7 @@ CustomApplication::StartApplication ()
       Ptr<NetDevice> dev = n->GetDevice (i);
       if (dev->GetInstanceTypeId () == WifiNetDevice::GetTypeId ())
         {
-
+          
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
           dev->SetReceiveCallback (MakeCallback (&CustomApplication::ReceivePacket, this));
@@ -64,7 +63,7 @@ CustomApplication::StartApplication ()
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
             */
-          break;
+         // break;
         }
     }
   if (m_wifiDevice)
@@ -100,48 +99,55 @@ void
 CustomApplication::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-  
-  for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
-       it != m_Tabla_paquetes_A_enviar.end (); it++)
-    {
-      Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
+   Ptr<NetDevice> dev =GetNode()->GetDevice(0);
+  m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
 
-      if (!it->Estado)
+  //std::cout<<"ID Device "<<m_wifiDevice->GetIfIndex ()<< " n: "<<GetNode()->GetNDevices()<<std::endl;
+  //if (m_wifiDevice->GetIfIndex () != 0)
+    //{
+      for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
+           it != m_Tabla_paquetes_A_enviar.end (); it++)
         {
-          
-          Ptr<Packet> packet = Create<Packet> (m_packetSize);
-          CustomDataTag tag;
-          // El timestamp se configrua dentro del constructor del tag
-          tag.SetNodeId (GetNode ()->GetId ());
-          tag.CopySEQNumber (it->numeroSEQ);
+          Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
 
-          if (it->NumeroDeEnvios == 0)
+          if (!it->Estado)
             {
+               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(0));
+              Ptr<Packet> packet = Create<Packet> (m_packetSize);
+              CustomDataTag tag;
+              // El timestamp se configrua dentro del constructor del tag
+              tag.SetNodeId (GetNode ()->GetId ());
+              tag.CopySEQNumber (it->numeroSEQ);
 
-              tag.SetTypeOfpacket (0);
+              if (it->NumeroDeEnvios == 0)
+                {
+
+                  tag.SetTypeOfpacket (0);
+                }
+              else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
+                {
+                  tag.SetTypeOfpacket (1);
+                }
+              it->NumeroDeEnvios += 1;
+              packet->AddPacketTag (tag);
+              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+              break;
             }
-          else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
+          else if (m_Paquetes_A_Reenviar.size () != 0)
             {
-              tag.SetTypeOfpacket (1);
+               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(0));
+              CustomDataTag tag;
+              std::list<ST_Reenvios>::iterator it = GetReenvio ();
+              tag.SetNodeId (it->ID_Creador);
+              tag.CopySEQNumber (it->numeroSEQ);
+              tag.SetTimestamp (it->Tiempo_ultimo_envio);
+              tag.SetTypeOfpacket (it->tipo_de_paquete);
+              Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
+              packet->AddPacketTag (tag);
+              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
             }
-          it->NumeroDeEnvios += 1;
-          packet->AddPacketTag (tag);
-          m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-          break;
         }
-      else if (m_Paquetes_A_Reenviar.size () != 0)
-        {
-          CustomDataTag tag;
-          std::list<ST_Reenvios>::iterator it = GetReenvio ();
-          tag.SetNodeId (it->ID_Creador);
-          tag.CopySEQNumber (it->numeroSEQ);
-          tag.SetTimestamp (it->Tiempo_ultimo_envio);
-          tag.SetTypeOfpacket (it->tipo_de_paquete);
-          Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
-          packet->AddPacketTag (tag);
-          m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-        }
-    }
+    //}
 
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
@@ -165,13 +171,15 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
-  
-  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()))
+  // std::cout<<"No se Confirmooooo entrega ################### device ID: "<<device->GetIfIndex()<<
+  //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
+
+  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex() ==0)
     { // Si el numero de secuencia no esta ne la tabla lo guar para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
     }
-  else if (tag.GetTypeOfPacket () == 2)
+  else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex() ==1)
     {
       ConfirmaEntrega (tag.GetSEQNumber ());
     }
@@ -219,12 +227,13 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
   for (uint32_t i = 0; i < PQts_A_enviar; i++)
     {
       ST_Paquete_A_Enviar Paquete;
-      
+
       Paquete.ID_Creador = ID;
-      
+
       Paquete.numeroSEQ = CalculaSeqNumber (&m_semilla);
       Paquete.Tam_Paquete = m_packetSize;
       Paquete.Tiempo_ultimo_envio = Now ();
+      Paquete.Tiempo_de_recibo_envio = Seconds(0);
       Paquete.NumeroDeEnvios = 0;
       Paquete.Estado = false;
       m_Tabla_paquetes_A_enviar.push_back (Paquete);
@@ -251,6 +260,7 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
     {
       if (it->numeroSEQ == SEQ)
         {
+          it->Tiempo_de_recibo_envio = Now()-it->Tiempo_ultimo_envio;
           it->Estado = true;
           break;
         }
@@ -279,6 +289,10 @@ CustomApplication::BuscaSEQEnTabla (u_long SEQ)
   return find;
 }
 void
+CustomApplication::setSemilla(u_long sem){
+this->m_semilla = sem;
+}
+void
 CustomApplication::ImprimeTabla ()
 {
   std::cout << "\t ********Paquetes generados en el Nodo*********" << GetNode ()->GetId ()
@@ -288,7 +302,7 @@ CustomApplication::ImprimeTabla ()
     {
       std::cout << "\t SEQnumber: " << it->numeroSEQ << "\t PacketSize: " << it->Tam_Paquete
                 << "\t N. Veces enviado: " << it->NumeroDeEnvios << "\t Estado: " << it->Estado
-                << std::endl;
+                << "\t Tiempo de entrega: "<<(it->Tiempo_de_recibo_envio.GetMilliSeconds())/1000.0<<" ms"<<std::endl;
     }
 }
 void

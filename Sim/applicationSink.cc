@@ -20,8 +20,7 @@ ApplicationSink::GetTypeId ()
           .SetParent<Application> ()
           .AddConstructor<ApplicationSink> ()
           .AddAttribute ("Interval", "Broadcast Interval", TimeValue (MilliSeconds (100)),
-                         MakeTimeAccessor (&ApplicationSink::m_broadcast_time),
-                         MakeTimeChecker ());
+                         MakeTimeAccessor (&ApplicationSink::m_broadcast_time), MakeTimeChecker ());
   return tid;
 }
 
@@ -62,7 +61,7 @@ ApplicationSink::StartApplication ()
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
             */
-          break;
+          //break;
         }
     }
   if (m_wifiDevice)
@@ -70,8 +69,8 @@ ApplicationSink::StartApplication ()
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
-      Simulator::Schedule (m_broadcast_time + random_offset,
-                           &ApplicationSink::BroadcastInformation, this);
+      Simulator::Schedule (m_broadcast_time + random_offset, &ApplicationSink::BroadcastInformation,
+                           this);
     }
   else
     {
@@ -97,15 +96,19 @@ void
 ApplicationSink::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-  if (m_Tabla_paquetes_ACK.size () != 0)//hay ACK pendientes
+  
+
+  if (m_Tabla_paquetes_ACK.size () != 0) //hay ACK pendientes
     {
-      
+
       for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
            it != m_Tabla_paquetes_ACK.end (); it++)
         {
           Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
-          if (it->NumeroDeEnvios<3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
+          
+          if (it->NumeroDeEnvios < 3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
+              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(1));
               Ptr<Packet> packet = Create<Packet> (m_packetSize);
               CustomDataTag tag;
               // El timestamp se configura dentro del constructor del tag
@@ -126,8 +129,8 @@ ApplicationSink::BroadcastInformation ()
 }
 
 bool
-ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
-                                      uint16_t protocol, const Address &sender)
+ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet, uint16_t protocol,
+                                const Address &sender)
 {
   /**Hay dos tipos de paquetes que se pueden recibir
    * 1.- Un paquete que fue enviado por este nodo 
@@ -138,16 +141,16 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
     */
-  
+
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
- 
+
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
-    { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK 
+    { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK
       Guarda_Paquete_para_ACK (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                                tag.GetTimestamp (), tag.GetTypeOfPacket ());
-      ImprimeTabla();
+      ImprimeTabla ();
     }
   return true;
 }
@@ -188,9 +191,8 @@ ApplicationSink::CalculaSeqNumber (u_long *sem)
 }
 
 void
-ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador,
-                                                uint32_t tam_del_paquete, Time timeStamp,
-                                                int32_t type)
+ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
+                                          Time timeStamp, int32_t type)
 {
   ST_Paquete_A_Enviar_sink ACK;
 
@@ -199,10 +201,9 @@ ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador,
   ACK.Tam_Paquete = tam_del_paquete;
   ACK.Tiempo_ultimo_envio = timeStamp;
   ACK.tipo_de_paquete = type;
-  ACK.NumeroDeEnvios=0;
+  ACK.NumeroDeEnvios = 0;
   m_Tabla_paquetes_ACK.push_back (ACK);
 }
-
 
 bool
 ApplicationSink::BuscaSEQEnTabla (u_long SEQ)
@@ -222,8 +223,8 @@ ApplicationSink::BuscaSEQEnTabla (u_long SEQ)
 void
 ApplicationSink::ImprimeTabla ()
 {
-  std::cout << "\t ********Paquetes recibidos en el Nodo " << GetNode ()->GetId ()
-            <<" *********"<< std::endl;
+  std::cout << "\t ********Paquetes recibidos en el Nodo " << GetNode ()->GetId () << " *********"
+            << std::endl;
   for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
        it != m_Tabla_paquetes_ACK.end (); it++)
     {

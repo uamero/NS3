@@ -49,6 +49,7 @@ CustomApplicationBnodes::StartApplication ()
   for (uint32_t i = 0; i < n->GetNDevices (); i++)
     {
       Ptr<NetDevice> dev = n->GetDevice (i);
+      //std::cout<<"config: "<<i<<std::endl;
       if (dev->GetInstanceTypeId () == WifiNetDevice::GetTypeId ())
         {
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
@@ -59,7 +60,7 @@ CustomApplicationBnodes::StartApplication ()
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
             */
-          break;
+          //break;
         }
     }
   if (m_wifiDevice)
@@ -95,14 +96,14 @@ void
 CustomApplicationBnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-  if (m_Paquetes_A_Reenviar.size () != 0)
+  if (m_Paquetes_A_Reenviar.size () != 0 )
     {
       for (std::list<ST_ReenviosB>::iterator it = m_Paquetes_A_Reenviar.begin ();
            it != m_Paquetes_A_Reenviar.end (); it++)
         {
           if (!it->Estado)
             {
-
+              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(0));
               Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
               CustomDataTag tag;
               // El timestamp se configrua dentro del constructor del tag
@@ -140,13 +141,13 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
-
-  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
+  
+  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2 && device->GetIfIndex() ==0)
     { // Si el numero de secuencia no esta en la tabla lo guarda para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
     }
-  else if (BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
+  else if (BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2 && device->GetIfIndex() ==0)
     { //El SEQ number ya se ha recibido previamente, hay que verificar
       //que no haya acuse de recibo por parte del sink
       if (!VerificaSEQRecibido (tag.GetSEQNumber ()))
@@ -161,7 +162,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
           m_Paquetes_A_Reenviar.push_back (NewP);
         }
     }
-  else if (tag.GetTypeOfPacket () == 2)
+  else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex() ==1)
     {
       ConfirmaEntrega (tag.GetSEQNumber ());
     }

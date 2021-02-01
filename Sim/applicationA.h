@@ -20,6 +20,7 @@ typedef struct
   uint32_t ID_Creador;
   uint32_t Tam_Paquete;
   Time Tiempo_ultimo_envio;
+  Time Tiempo_de_recibo_envio;
   uint32_t NumeroDeEnvios;
   bool Estado; /**> true -> el paquete ha sido entregado*/
 } ST_Paquete_A_Enviar;
@@ -76,6 +77,7 @@ public:
   void Guarda_Paquete_reenvio(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
   Time timeStamp,int32_t type);
   std::list<ST_Reenvios>::iterator GetReenvio();
+  void setSemilla(u_long sem);
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
