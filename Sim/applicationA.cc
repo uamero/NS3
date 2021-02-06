@@ -4,6 +4,7 @@
 #include "applicationA.h"
 #include "My-tag.h"
 
+#include <bitset>
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
 #define END_CODE "\033[0m"
@@ -54,7 +55,7 @@ CustomApplication::StartApplication ()
       Ptr<NetDevice> dev = n->GetDevice (i);
       if (dev->GetInstanceTypeId () == WifiNetDevice::GetTypeId ())
         {
-          
+
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
           dev->SetReceiveCallback (MakeCallback (&CustomApplication::ReceivePacket, this));
@@ -63,7 +64,7 @@ CustomApplication::StartApplication ()
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
             */
-         // break;
+          // break;
         }
     }
   if (m_wifiDevice)
@@ -99,55 +100,57 @@ void
 CustomApplication::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-   Ptr<NetDevice> dev =GetNode()->GetDevice(0);
+  Ptr<NetDevice> dev = GetNode ()->GetDevice (0);
   m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
-
+  int8_t ch = CanalesDisponibles ();
+  std::cout << "El canal es ch: " << std::to_string(ch) << std::endl;
   //std::cout<<"ID Device "<<m_wifiDevice->GetIfIndex ()<< " n: "<<GetNode()->GetNDevices()<<std::endl;
   //if (m_wifiDevice->GetIfIndex () != 0)
-    //{
-      for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
-           it != m_Tabla_paquetes_A_enviar.end (); it++)
+  //{
+  for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
+       it != m_Tabla_paquetes_A_enviar.end (); it++)
+    {
+      Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
+
+      if (!it->Estado && ch != -1)
         {
-          Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
-
-          if (!it->Estado)
+          m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
+          Ptr<Packet> packet = Create<Packet> (m_packetSize);
+          CustomDataTag tag;
+          // El timestamp se configrua dentro del constructor del tag
+          tag.SetNodeId (GetNode ()->GetId ());
+          tag.CopySEQNumber (it->numeroSEQ);
+          tag.SetChanels (ch);
+          if (it->NumeroDeEnvios == 0)
             {
-               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(0));
-              Ptr<Packet> packet = Create<Packet> (m_packetSize);
-              CustomDataTag tag;
-              // El timestamp se configrua dentro del constructor del tag
-              tag.SetNodeId (GetNode ()->GetId ());
-              tag.CopySEQNumber (it->numeroSEQ);
 
-              if (it->NumeroDeEnvios == 0)
-                {
-
-                  tag.SetTypeOfpacket (0);
-                }
-              else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
-                {
-                  tag.SetTypeOfpacket (1);
-                }
-              it->NumeroDeEnvios += 1;
-              packet->AddPacketTag (tag);
-              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-              break;
+              tag.SetTypeOfpacket (0);
             }
-          else if (m_Paquetes_A_Reenviar.size () != 0)
+          else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
             {
-               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(0));
-              CustomDataTag tag;
-              std::list<ST_Reenvios>::iterator it = GetReenvio ();
-              tag.SetNodeId (it->ID_Creador);
-              tag.CopySEQNumber (it->numeroSEQ);
-              tag.SetTimestamp (it->Tiempo_ultimo_envio);
-              tag.SetTypeOfpacket (it->tipo_de_paquete);
-              Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
-              packet->AddPacketTag (tag);
-              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+              tag.SetTypeOfpacket (1);
             }
+          it->NumeroDeEnvios += 1;
+          packet->AddPacketTag (tag);
+          m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+          break;
         }
-    //}
+      else if (m_Paquetes_A_Reenviar.size () != 0)
+        {
+          m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
+          CustomDataTag tag;
+          std::list<ST_Reenvios>::iterator it = GetReenvio ();
+          tag.SetNodeId (it->ID_Creador);
+          tag.CopySEQNumber (it->numeroSEQ);
+          tag.SetTimestamp (it->Tiempo_ultimo_envio);
+          tag.SetTypeOfpacket (it->tipo_de_paquete);
+
+          Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
+          packet->AddPacketTag (tag);
+          m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+        }
+    }
+  //}
 
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
@@ -173,15 +176,19 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
   packet->PeekPacketTag (tag);
   // std::cout<<"No se Confirmooooo entrega ################### device ID: "<<device->GetIfIndex()<<
   //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
-
-  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex() ==0)
-    { // Si el numero de secuencia no esta ne la tabla lo guar para reenviar
+  uint8_t ch = tag.GetChanels ();
+  if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex () == 0 && VerificaCanal (ch))
+    { // Si el numero de secuencia no esta ne la tabla lo guarda para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
     }
-  else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex() ==1)
-    {
+  else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex () == 1)
+    { //Paquete proveniente del Sink
       ConfirmaEntrega (tag.GetSEQNumber ());
+    }
+  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 1)
+    { //Paquete proveniente de los usuarios primarios
+      BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
     }
   return true;
 }
@@ -233,11 +240,16 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
       Paquete.numeroSEQ = CalculaSeqNumber (&m_semilla);
       Paquete.Tam_Paquete = m_packetSize;
       Paquete.Tiempo_ultimo_envio = Now ();
-      Paquete.Tiempo_de_recibo_envio = Seconds(0);
+      Paquete.Tiempo_de_recibo_envio = Seconds (0);
       Paquete.NumeroDeEnvios = 0;
       Paquete.Estado = false;
       m_Tabla_paquetes_A_enviar.push_back (Paquete);
     }
+  ST_Canales ch;
+  ch.m_chanels = 50;
+  ch.ID_Persive = ID;
+  ch.Tiempo_ultima_actualizacion = Now ();
+  m_Canales_disponibles.push_back (ch);
   // std::cout << "Inicia tabla "<<m_Tabla_paquetes_A_enviar.size()<<std::endl;
 }
 void
@@ -260,7 +272,7 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
     {
       if (it->numeroSEQ == SEQ)
         {
-          it->Tiempo_de_recibo_envio = Now()-it->Tiempo_ultimo_envio;
+          it->Tiempo_de_recibo_envio = Now () - it->Tiempo_ultimo_envio;
           it->Estado = true;
           break;
         }
@@ -289,8 +301,9 @@ CustomApplication::BuscaSEQEnTabla (u_long SEQ)
   return find;
 }
 void
-CustomApplication::setSemilla(u_long sem){
-this->m_semilla = sem;
+CustomApplication::setSemilla (u_long sem)
+{
+  this->m_semilla = sem;
 }
 void
 CustomApplication::ImprimeTabla ()
@@ -302,7 +315,8 @@ CustomApplication::ImprimeTabla ()
     {
       std::cout << "\t SEQnumber: " << it->numeroSEQ << "\t PacketSize: " << it->Tam_Paquete
                 << "\t N. Veces enviado: " << it->NumeroDeEnvios << "\t Estado: " << it->Estado
-                << "\t Tiempo de entrega: "<<(it->Tiempo_de_recibo_envio.GetMilliSeconds())/1000.0<<" ms"<<std::endl;
+                << "\t Tiempo de entrega: "
+                << (it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0 << " ms" << std::endl;
     }
 }
 void
@@ -341,5 +355,71 @@ CustomApplication::RemoveOldNeighbors ()
   //Check the list again after 1 second.
   Simulator::Schedule (Seconds (1), &CustomApplication::RemoveOldNeighbors, this);
 }
+uint8_t
+CustomApplication::CanalesDisponibles ()
+{
+  uint8_t canales = 0;
+  for (std::list<ST_Canales>::iterator it = m_Canales_disponibles.begin ();
+       it != m_Canales_disponibles.end (); it++)
+    {
+      canales = it->m_chanels | canales;
+    }
+  std::bitset<8> x (canales);
+  std::string disp = x.to_string ();
 
+  canales = 0;
+  for (uint8_t i = 0; i < disp.size (); i++)
+    {
+      if (disp[i] == '0')
+        {
+          canales = i;
+          return canales;
+        }
+    }
+  return -1;
+}
+bool
+CustomApplication::VerificaCanal (uint8_t ch)
+{
+  uint8_t canales = 0;
+  bool find = false;
+  for (std::list<ST_Canales>::iterator it = m_Canales_disponibles.begin ();
+       it != m_Canales_disponibles.end (); it++)
+    {
+      canales = it->m_chanels | canales;
+    }
+  std::bitset<8> x (canales);
+  std::string disp = x.to_string ();
+
+  if (disp[ch] == '0')
+    {
+      find = true;
+    }
+  return find;
+}
+bool
+CustomApplication::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
+{
+
+  bool find = false;
+  for (std::list<ST_Canales>::iterator it = m_Canales_disponibles.begin ();
+       it != m_Canales_disponibles.end (); it++)
+    {
+      if (it->ID_Persive == ID)
+        {
+          it->m_chanels = ch;
+          it->Tiempo_ultima_actualizacion = Now ();
+          find = true;
+          break;
+        }
+    }
+  if (!find)
+    {
+      ST_Canales Nch;
+      Nch.ID_Persive = ID;
+      Nch.m_chanels = ch;
+      Nch.Tiempo_ultima_actualizacion = Now ();
+    }
+  return find;
+}
 } // namespace ns3

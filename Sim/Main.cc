@@ -4,6 +4,7 @@
 #include "ns3/core-module.h"
 #include "applicationA.h" //Nodos secundarios generadores
 #include "applicationB.h" //Nodos secundarios no generadores
+#include "applicationPrimarios.h"//Nodos primarios
 #include "applicationSink.h" //Nodo Sink
 #include "ns3/netanim-module.h"
 #include "My-tag.h"
@@ -76,36 +77,38 @@ main (int argc, char *argv[])
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
 
   CommandLine cmd;
+  uint32_t n_iteracion=1;
   uint32_t n_SecundariosA = 2; //Numero de nodos en la red
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
-  //uint32_t n_Primarios = 1; //Numero de nodos en la red
+  uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
   double simTime = 10; //Tiempo de simulación
-  double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
+ // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
-  //double interval = 0.5; //intervalo de broadcast
+  double interval = 0.5; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =1; //numero de paquetes a ser creados por cada uno de los nodos generadores
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
+  cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
   cmd.AddValue ("i", "Duración del intervalo de broadcast", interval);
   cmd.AddValue ("nA", "Numero de nodos generadores", n_SecundariosA);
   cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB);
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
-  //cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
-
+  cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
+ 
   cmd.Parse (argc, argv);
   std::cout <<"Interval : "<<interval<<std::endl;
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
   NodeContainer SecundariosB;
-  //NodeContainer Primarios;
+  NodeContainer Primarios;
   NodeContainer Sink;
 
   SecundariosA.Create (n_SecundariosA);
   SecundariosB.Create (n_SecundariosB);
-  //Primarios.Create(n_Primarios);
+  Primarios.Create(n_Primarios);
   Sink.Create (n_Sink);
-
+  
   /*Se configura el modelo de movilidad*/
   MobilityHelper mobilit;
   mobilit.SetPositionAllocator ("ns3::RandomBoxPositionAllocator", "X",
@@ -135,10 +138,14 @@ main (int argc, char *argv[])
   MobilityHelper mobilitySink;
   mobilitySink.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobilitySink.Install (Sink);
+  mobilitySink.Install (Primarios);
   //Ptr<ListPositionAllocator> positionAlloc_Sink = CreateObject<ListPositionAllocator> ();
   Ptr<ConstantPositionMobilityModel> Sink_Pos =
       DynamicCast<ConstantPositionMobilityModel> (Sink.Get (0)->GetObject<MobilityModel> ());
   Sink_Pos->SetPosition (Vector (25.1, 27.6, 0));
+    Ptr<ConstantPositionMobilityModel> Prim_Pos =
+      DynamicCast<ConstantPositionMobilityModel> (Primarios.Get (0)->GetObject<MobilityModel> ());
+      Prim_Pos->SetPosition(Vector(10,24,0));
   //mobilitySink.Install (Sink);
   /*Termina la configuración de la movilidad*/
 
@@ -211,6 +218,8 @@ main (int argc, char *argv[])
   wifiSink.Install (wifiPhySink, wifiMac, SecundariosA);
   wifi.Install (wifiPhy, wifiMac, SecundariosB);
   wifiSink.Install (wifiPhySink, wifiMac, SecundariosB);
+  wifi.Install(wifiPhy,wifiMac,Primarios);
+  wifiSink.Install (wifiPhySink, wifiMac, Primarios);
   wifi.Install (wifiPhy, wifiMac, Sink);
   wifiSink.Install (wifiPhySink, wifiMac, Sink);
 
@@ -253,6 +262,17 @@ main (int argc, char *argv[])
       SecundariosB.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
+  for (uint32_t i = 0; i < Primarios.GetN (); i++)
+    {
+      //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
+      //std::ostringstream oss;
+      Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
+      app_i->SetBroadcastInterval (Seconds (interval));
+      app_i->SetStartTime (Seconds (0));
+      app_i->SetStopTime (Seconds (simTime));
+      Primarios.Get (i)->AddApplication (app_i);
+      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+    }  
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
       //std::cout<< "ID3: "<< Sink.Get(i)->GetId()<<std::endl;

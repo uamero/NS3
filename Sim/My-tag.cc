@@ -21,6 +21,7 @@ CustomDataTag::CustomDataTag ()
   m_nodeId = -1;
   m_SEQNumber = 1;
   m_TypeOfPacket = 0;
+  m_chanels=0;
 }
 
 CustomDataTag::~CustomDataTag ()
@@ -51,7 +52,7 @@ uint32_t
 CustomDataTag::GetSerializedSize (void) const
 {
   return sizeof (ns3::Time) + sizeof (uint32_t) +
-         sizeof (u_long) + sizeof (uint32_t) + sizeof (uint32_t);
+         sizeof (u_long) + sizeof (uint32_t) + sizeof (uint8_t);
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -65,7 +66,7 @@ CustomDataTag::Serialize (TagBuffer i) const
   i.WriteU32 (m_nodeId);
   i.WriteU64 (m_SEQNumber);
   i.WriteU32 (m_TypeOfPacket);
-  //i.Write(m_ruta,m_sizeRoute);
+  i.WriteU8(m_chanels);
 }
 /** This function reads data from a buffer and store it in class's instance variables.
  */
@@ -80,6 +81,8 @@ CustomDataTag::Deserialize (TagBuffer i)
   m_SEQNumber = i.ReadU64 ();
   //Se extrae el tipo del paquete
   m_TypeOfPacket = i.ReadU32 ();
+
+  m_chanels=i.ReadU8();
 }
 /**
  * This function can be used with ASCII traces if enabled. 
@@ -116,7 +119,10 @@ CustomDataTag::GetSEQNumber ()
 {
   return this->m_SEQNumber;
 }
-
+uint8_t
+CustomDataTag::GetChanels(){
+  return m_chanels;
+}
 void
 CustomDataTag::SetTypeOfpacket (int32_t TType)
 {
@@ -132,7 +138,10 @@ CustomDataTag::SetTimestamp (Time t)
 {
   this->m_timestamp = t;
 }
-
+void
+CustomDataTag::SetChanels(uint8_t chanels){
+  m_chanels=chanels;
+}
 
 void
 CustomDataTag::CopySEQNumber (u_long number)

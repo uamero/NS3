@@ -1,5 +1,5 @@
-#ifndef BNODES_APPLICATION_H
-#define BNODES_APPLICATION_H
+#ifndef PNODES_APPLICATION_H
+#define PNODES_APPLICATION_H
 #include "ns3/application.h"
 #include "ns3/wave-net-device.h"
 #include "ns3/wifi-phy.h"
@@ -13,7 +13,7 @@ typedef struct
 {
   Mac48Address neighbor_mac;
   Time last_beacon;
-} NeighborInformationB;
+} NeighborInformationP;
 
 typedef struct
 {
@@ -23,26 +23,21 @@ typedef struct
   Time Tiempo_ultimo_envio;
   int32_t tipo_de_paquete;
   bool Estado;
-} ST_ReenviosB;
-typedef struct 
-{
-  uint8_t m_chanels;
-  Time Tiempo_ultima_actualizacion;
-  uint32_t ID_Persive;
-}ST_CanalesB;
-class CustomApplicationBnodes : public ns3::Application
+} ST_ReenviosP;
+
+class CustomApplicationPnodes : public ns3::Application
 {
 public:
   static TypeId GetTypeId (void);
   virtual TypeId GetInstanceTypeId (void) const;
 
-  CustomApplicationBnodes ();
-  ~CustomApplicationBnodes ();
+  CustomApplicationPnodes ();
+  ~CustomApplicationPnodes ();
 
   /** \brief Broadcast some information 
              */
   void BroadcastInformation ();
-  void ImprimeTabla();
+  
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
              */
@@ -65,30 +60,20 @@ public:
   /** \brief Remove neighbors you haven't heard from after some time.
              */
   void RemoveOldNeighbors ();
-  bool VerificaSEQRecibido(u_long SEQ);
-  void ConfirmaEntrega(u_long SEQ);
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla(u_long SEQ);
-  void Guarda_Paquete_reenvio(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
-  Time timeStamp,int32_t type);
-  std::list<ST_ReenviosB>::iterator GetReenvio();
-  uint8_t CanalesDisponibles();
-  /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
-  bool BuscaCanalesID(uint8_t ch,uint32_t ID,Time timD);
-  bool VerificaCanal(uint8_t ch);
+  
+  uint32_t Corrimientos( uint32_t registro);
+  uint8_t GetCanales();
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
   void StartApplication ();
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
-
-  std::vector<NeighborInformationB> m_neighbors; /**< A table representing neighbors of this node */
-  std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
-  std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes a reenviar*/
-  std::list<ST_CanalesB> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
+  std::vector<NeighborInformationP> m_neighbors; /**< A table representing neighbors of this node */
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */
+  uint32_t m_PacketSize;
 };
 } // namespace ns3
 
