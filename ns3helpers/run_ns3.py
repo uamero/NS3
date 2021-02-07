@@ -77,6 +77,25 @@ def make_compatible_str(line_input):
     elif type(line_input) is bytes:
         return line_input.decode() #Python3
 
+"""
+Argumentos de la simulacion 
+  cmd.AddValue ("t", "Tiempo de simulacion", simTime);
+  cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
+  cmd.AddValue ("i", "Duracion del intervalo de broadcast", interval);
+  cmd.AddValue ("nA", "Numero de nodos generadores", n_SecundariosA);  -->por default es 1
+  cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB); --->>>por default son 15
+  cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);  --->>> por default es 1
+  cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);   -->>>> por default es 1
+  cmd.AddValue ("CSVFile", "Nombre del archivo CSV donde se almacenaran los resultados de la simulacion", CSVFile);
+"""
+def FirstScenario():
+    aleat=random.randint(0,100)/100.0
+    nPTS=1
+    argumentos= ""
+
+    print ("IT Command "+str(i)+" : " + pwd + "/waf --run \"" + default_program +" --i=" + str(aleat) + "\"")
+    os.system(pwd + "/waf --run \"" + default_program+" --i="+str(aleat)+"\""+"\n")
+    return argumentos
 def main(argv):
     """Main function"""
     #Get the present working directory
@@ -108,21 +127,19 @@ def main(argv):
     '''
     
     print (MyColor.GREEN + "Scripts is running ns3 program : " + default_program + MyColor.END)
-
+    
     #If running without arguments...
     if len(argv) == 0:
         #Printing the command string so that users can see if they're not running the intended program.
         aleat=random.randint(0,100)/100.0
-        #command_string = pwd + "/waf --run \"" + default_program
-        #command_string = command_string + " "
+        i=0
         if print_details:
-            #print "Program is not supplied with parameters"
-            #print ("Command : " + pwd + "/waf --run " + default_program )
-            print ("Command : " + pwd + "/waf --run \"" + default_program +"--i="+str(aleat)+"\"")
-
+             #print "Program is not supplied with parameters"
+             #print ("Command : " + pwd + "/waf --run " + default_program)
+            print ("IT Command "+str(i)+" : " + pwd + "/waf --run \"" + default_program +" --i=" + str(aleat) + "\"")
         #Run the program!
         #os.system(pwd + "/waf --run " + default_program)
-        os.system(pwd + "/waf --run " + default_program+"--i="+str(aleat)+"\"")
+        os.system(pwd + "/waf --run \"" + default_program+" --i="+str(aleat)+"\""+"\n")
         #Set NS3_PROGRAM to the last executed program (not needed. This should be removed later.)
         #os.environ['NS3_PROGRAM'] = default_program
     else:

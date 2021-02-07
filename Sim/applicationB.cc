@@ -97,12 +97,13 @@ void
 CustomApplicationBnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
+  uint8_t ch = CanalesDisponibles();
   if (m_Paquetes_A_Reenviar.size () != 0)
     {
       for (std::list<ST_ReenviosB>::iterator it = m_Paquetes_A_Reenviar.begin ();
            it != m_Paquetes_A_Reenviar.end (); it++)
         {
-          if (!it->Estado)
+          if (!it->Estado && ch!=-1)
             {
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
               Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
@@ -112,10 +113,11 @@ CustomApplicationBnodes::BroadcastInformation ()
               tag.CopySEQNumber (it->numeroSEQ);
               tag.SetTimestamp (it->Tiempo_ultimo_envio);
               tag.SetTypeOfpacket (it->tipo_de_paquete);
+              tag.SetChanels(ch);
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
               m_Paquetes_A_Reenviar.erase (it);
-              std::cout << "El canal es : " << CanalesDisponibles () << std::endl;
+              //std::cout << "El canal en B es : " << std::to_string (ch) << std::endl;
               break;
             }
         }
@@ -158,6 +160,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
       //que no haya acuse de recibo por parte del sink
       if (!VerificaSEQRecibido (tag.GetSEQNumber ()))
         { //Se verifica si el estado del paquete no es entregado
+         //std::cout << "B El canal por donde recibo es es ch: " << std::to_string(ch) << std::endl;
           ST_ReenviosB NewP;
           NewP.ID_Creador = tag.GetNodeId ();
           NewP.numeroSEQ = tag.GetSEQNumber ();
@@ -174,6 +177,8 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
     }
   else if (tag.GetTypeOfPacket () == 3)
     {
+      std::bitset<8> ocu(ch); 
+     // std::cout << "B -> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
     }
   return true;
@@ -248,6 +253,7 @@ CustomApplicationBnodes::ConfirmaEntrega (u_long SEQ)
         }
     }
 }
+
 std::list<ST_ReenviosB>::iterator
 CustomApplicationBnodes::GetReenvio ()
 {
@@ -345,11 +351,16 @@ CustomApplicationBnodes::VerificaCanal (uint8_t ch)
 {
   uint8_t canales = 0;
   bool find = false;
-  for (std::list<ST_CanalesB>::iterator it = m_Canales_disponibles.begin ();
+  if(m_Canales_disponibles.size()==0){
+    canales=0;
+  }else{
+    for (std::list<ST_CanalesB>::iterator it = m_Canales_disponibles.begin ();
        it != m_Canales_disponibles.end (); it++)
     {
       canales = it->m_chanels | canales;
     }
+  }
+  
   std::bitset<8> x (canales);
   std::string disp = x.to_string ();
 
@@ -357,13 +368,12 @@ CustomApplicationBnodes::VerificaCanal (uint8_t ch)
     {
       find = true;
     }
-    find=true;
   return find;
 }
+
 bool
 CustomApplicationBnodes::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
 {
-
   bool find = false;
   for (std::list<ST_CanalesB>::iterator it = m_Canales_disponibles.begin ();
        it != m_Canales_disponibles.end (); it++)

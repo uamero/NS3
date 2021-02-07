@@ -4,7 +4,7 @@
 #include "ns3/core-module.h"
 #include "applicationA.h" //Nodos secundarios generadores
 #include "applicationB.h" //Nodos secundarios no generadores
-#include "applicationPrimarios.h"//Nodos primarios
+#include "applicationPrimarios.h" //Nodos primarios
 #include "applicationSink.h" //Nodo Sink
 #include "ns3/netanim-module.h"
 #include "My-tag.h"
@@ -77,17 +77,19 @@ main (int argc, char *argv[])
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
 
   CommandLine cmd;
-  uint32_t n_iteracion=1;
-  uint32_t n_SecundariosA = 2; //Numero de nodos en la red
+  uint32_t n_iteracion = 0;
+  uint32_t n_SecundariosA = 1; //Numero de nodos en la red
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
   double simTime = 10; //Tiempo de simulación
- // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
+  // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
   double interval = 0.5; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
-  uint32_t n_Packets_A_Enviar =1; //numero de paquetes a ser creados por cada uno de los nodos generadores
+  uint32_t n_Packets_A_Enviar =
+      1; //numero de paquetes a ser creados por cada uno de los nodos generadores
+  std::string CSVFile = "default.csv";
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
   cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
   cmd.AddValue ("i", "Duración del intervalo de broadcast", interval);
@@ -95,9 +97,12 @@ main (int argc, char *argv[])
   cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB);
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
- 
+  cmd.AddValue ("CSVFile",
+                "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
+                CSVFile);
+
   cmd.Parse (argc, argv);
-  std::cout <<"Interval : "<<interval<<std::endl;
+  std::cout << "Interval : " << interval << std::endl;
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
   NodeContainer SecundariosB;
@@ -106,9 +111,9 @@ main (int argc, char *argv[])
 
   SecundariosA.Create (n_SecundariosA);
   SecundariosB.Create (n_SecundariosB);
-  Primarios.Create(n_Primarios);
+  Primarios.Create (n_Primarios);
   Sink.Create (n_Sink);
-  
+
   /*Se configura el modelo de movilidad*/
   MobilityHelper mobilit;
   mobilit.SetPositionAllocator ("ns3::RandomBoxPositionAllocator", "X",
@@ -143,9 +148,9 @@ main (int argc, char *argv[])
   Ptr<ConstantPositionMobilityModel> Sink_Pos =
       DynamicCast<ConstantPositionMobilityModel> (Sink.Get (0)->GetObject<MobilityModel> ());
   Sink_Pos->SetPosition (Vector (25.1, 27.6, 0));
-    Ptr<ConstantPositionMobilityModel> Prim_Pos =
+  Ptr<ConstantPositionMobilityModel> Prim_Pos =
       DynamicCast<ConstantPositionMobilityModel> (Primarios.Get (0)->GetObject<MobilityModel> ());
-      Prim_Pos->SetPosition(Vector(10,24,0));
+  Prim_Pos->SetPosition (Vector (15, 24, 0));
   //mobilitySink.Install (Sink);
   /*Termina la configuración de la movilidad*/
 
@@ -218,7 +223,7 @@ main (int argc, char *argv[])
   wifiSink.Install (wifiPhySink, wifiMac, SecundariosA);
   wifi.Install (wifiPhy, wifiMac, SecundariosB);
   wifiSink.Install (wifiPhySink, wifiMac, SecundariosB);
-  wifi.Install(wifiPhy,wifiMac,Primarios);
+  wifi.Install (wifiPhy, wifiMac, Primarios);
   wifiSink.Install (wifiPhySink, wifiMac, Primarios);
   wifi.Install (wifiPhy, wifiMac, Sink);
   wifiSink.Install (wifiPhySink, wifiMac, Sink);
@@ -272,7 +277,7 @@ main (int argc, char *argv[])
       app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
-    }  
+    }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
       //std::cout<< "ID3: "<< Sink.Get(i)->GetId()<<std::endl;
@@ -298,27 +303,24 @@ main (int argc, char *argv[])
   // Config::Set("/NodeList/"+ std::to_string(Sink.Get(0)->GetId())+"/DeviceList/*/$ns3::WifiNetDevice/Channel/$ns3::YansWifiChannel/PropagationLossModel/$ns3::RangePropagationLossModel/MaxRange", DoubleValue(new_range) );
   Simulator::Stop (Seconds (simTime));
   Simulator::Run (); //Termina simulación
-  std::cout << "Post Simulation: " << std::endl;
+  //std::cout << "Post Simulation: " << std::endl;
+  FILE *datos;
+  if (n_iteracion == 0)
+    {
+      datos = fopen ("/home/manuel/Escritorio/Datos_Sim/datos.csv", "w");
+    }
+  else
+    {
+      datos = fopen ("/home/manuel/Escritorio/Datos_Sim/datos.csv", "a");
+    }
 
-  /*FILE *datos = fopen ("/home/manuel/Escritorio/Datos_Sim/datos.csv", "w");
-  
-  fprintf (datos, "Nodo,Paquetes creados,Paquetes Duplicados,Paquetes Recibidos,Paquetes "
-                  "Reenviados,Retardo promedio\n");
-  for (uint32_t i = 0; i < nodos.GetN (); i++)
+  fprintf (datos, "Nodo,No. Paquetes,Estatus del paquete,Tiempo de entrega, Tiempo de broadcast\n");
+  for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
       Ptr<CustomApplication> appI =
-          DynamicCast<CustomApplication> (.Get (i)->GetApplication (0));
-      std::string valores =
-          "  " + std::to_string (i) + "\t\t  " +
-          std::to_string (appI->m_ControlPakets._NPQ_WAS_Created) + "\t\t\t  " +
-          std::to_string (appI->m_ControlPakets._NPQ_WAS_Duplicated) + "\t\t\t  " +
-          std::to_string (appI->m_ControlPakets._NPQ_WAS_Received) + "\t\t\t  " +
-          std::to_string (appI->m_ControlPakets._NPQ_WAS_ReSend) + "\t\t\t  " +
-          std::to_string (appI->m_ControlPakets.delayOnNode.GetMilliSeconds ()) + " ms" + "\n";
-      //+std::to_string(StringValue(appI->m_ControlPakets.delayOnNode))
-      fprintf (datos, valores.c_str ());
-      //appI->PrintNeighbors ();
-    }*/
+          DynamicCast<CustomApplication> (SecundariosA.Get (i)->GetApplication (0));
+      fprintf (datos, appI->ObtenDAtosNodo ().c_str ());
+    }
   /*
   fprintf (datos, "Nodo;Paquetes creados;Paquetes retransmitidos;Paquetes Duplicados;Paquetes "
                   "Recibidos;Paquetes Reenviados;Retardo promedio (ms);Paquetes recibidos por el "
@@ -347,7 +349,7 @@ main (int argc, char *argv[])
     }
 
   fclose (datos);*/
-    for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
+  for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
       //std::ostringstream oss;
       // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;

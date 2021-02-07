@@ -88,6 +88,8 @@ public:
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID(uint8_t ch,uint32_t ID,Time timD);
   bool VerificaCanal(uint8_t ch);
+  std::string ObtenDAtosNodo();
+  uint32_t CuentaPQTSEntregados();
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */

@@ -30,6 +30,7 @@ typedef struct
   Time Tiempo_ultima_actualizacion;
   uint32_t ID_Persive;
 }ST_CanalesB;
+
 class CustomApplicationBnodes : public ns3::Application
 {
 public:

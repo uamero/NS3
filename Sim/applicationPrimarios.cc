@@ -4,6 +4,7 @@
 #include "applicationPrimarios.h"
 #include "My-tag.h"
 
+#include <bitset>
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
 #define END_CODE "\033[0m"
@@ -107,7 +108,10 @@ CustomApplicationPnodes::BroadcastInformation ()
   tag.SetTimestamp (Now());
   tag.SetTypeOfpacket (3);
   tag.SetChanels(GetCanales());
+  //tag.SetChanels(0);
   packet->AddPacketTag (tag);
+  //std::bitset<8> ocu(tag.GetChanels()); 
+  //std::cout << "La ocupación enviada por el primario ID: "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
@@ -163,7 +167,7 @@ CustomApplicationPnodes::UpdateNeighbor (Mac48Address addr)
 uint8_t
 CustomApplicationPnodes::GetCanales ()
 {
-  srand (time (NULL));
+  //srand (time (NULL));
   uint8_t canales = rand () % 255;
   return canales;
 }

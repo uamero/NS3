@@ -103,7 +103,7 @@ CustomApplication::BroadcastInformation ()
   Ptr<NetDevice> dev = GetNode ()->GetDevice (0);
   m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
   int8_t ch = CanalesDisponibles ();
-  std::cout << "El canal es ch: " << std::to_string(ch) << std::endl;
+  //std::cout << "A El canal por donde envio es ch: " << std::to_string(ch) << std::endl;
   //std::cout<<"ID Device "<<m_wifiDevice->GetIfIndex ()<< " n: "<<GetNode()->GetNDevices()<<std::endl;
   //if (m_wifiDevice->GetIfIndex () != 0)
   //{
@@ -186,8 +186,10 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
     { //Paquete proveniente del Sink
       ConfirmaEntrega (tag.GetSEQNumber ());
     }
-  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 1)
+  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 0)
     { //Paquete proveniente de los usuarios primarios
+      //std::bitset<8> ocu(ch);
+      //std::cout << "A-> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
     }
   return true;
@@ -246,7 +248,7 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
       m_Tabla_paquetes_A_enviar.push_back (Paquete);
     }
   ST_Canales ch;
-  ch.m_chanels = 50;
+  ch.m_chanels = 0;
   ch.ID_Persive = ID;
   ch.Tiempo_ultima_actualizacion = Now ();
   m_Canales_disponibles.push_back (ch);
@@ -318,6 +320,37 @@ CustomApplication::ImprimeTabla ()
                 << "\t Tiempo de entrega: "
                 << (it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0 << " ms" << std::endl;
     }
+}
+std::string
+CustomApplication::ObtenDAtosNodo ()
+{
+  uint32_t cont = 0;
+  std::string datos;
+  for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
+       it != m_Tabla_paquetes_A_enviar.end (); it++)
+    {
+      datos =
+          std::to_string (GetNode ()->GetId ()) + std::to_string (cont) +
+          std::to_string(it->Estado)+
+          std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0) +
+          std::to_string (m_broadcast_time.GetSeconds()) + "\n";
+      cont++;
+    }
+  return datos;
+}
+uint32_t
+CustomApplication::CuentaPQTSEntregados ()
+{
+  uint32_t cont = 0;
+  for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
+       it != m_Tabla_paquetes_A_enviar.end (); it++)
+    {
+      if (it->Estado)
+        {
+          cont++;
+        }
+    }
+  return cont;
 }
 void
 CustomApplication::PrintNeighbors ()
@@ -397,6 +430,7 @@ CustomApplication::VerificaCanal (uint8_t ch)
     }
   return find;
 }
+
 bool
 CustomApplication::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
 {
