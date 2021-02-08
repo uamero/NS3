@@ -90,6 +90,7 @@ main (int argc, char *argv[])
   uint32_t n_Packets_A_Enviar =
       1; //numero de paquetes a ser creados por cada uno de los nodos generadores
   std::string CSVFile = "default.csv";
+  bool StartSimulation = true;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
   cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
   cmd.AddValue ("i", "Duración del intervalo de broadcast", interval);
@@ -97,12 +98,12 @@ main (int argc, char *argv[])
   cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB);
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
+  cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
 
   cmd.Parse (argc, argv);
-  std::cout << "Interval : " << interval << std::endl;
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
   NodeContainer SecundariosB;
@@ -305,22 +306,44 @@ main (int argc, char *argv[])
   Simulator::Run (); //Termina simulación
   //std::cout << "Post Simulation: " << std::endl;
   FILE *datos;
-  if (n_iteracion == 0)
+  if (StartSimulation)
     {
-      datos = fopen ("/home/manuel/Escritorio/Datos_Sim/datos.csv", "w");
+       std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile; 
+      datos = fopen (ruta.c_str(), "w");
+     /* std::string info =
+          "Información de la simulación | Secundarios A: " + std::to_string (n_SecundariosA) +
+          " | Secundarios B: " + std::to_string (n_SecundariosB) + "| Primarios " +
+          std::to_string (n_Primarios) + "\n";
+      fprintf (datos, info.c_str ());*/
+      fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega (ms), Tiempo de "
+                      "broadcast,Iteración \n");
     }
   else
     {
-      datos = fopen ("/home/manuel/Escritorio/Datos_Sim/datos.csv", "a");
+      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile; 
+      datos = fopen (ruta.c_str(), "a");
     }
 
-  fprintf (datos, "Nodo,No. Paquetes,Estatus del paquete,Tiempo de entrega, Tiempo de broadcast\n");
   for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
       Ptr<CustomApplication> appI =
           DynamicCast<CustomApplication> (SecundariosA.Get (i)->GetApplication (0));
-      fprintf (datos, appI->ObtenDAtosNodo ().c_str ());
+      std::string data;
+      uint32_t cont = 0;
+      for (std::list<ST_Paquete_A_Enviar>::iterator it = appI->m_Tabla_paquetes_A_enviar.begin ();
+           it != appI->m_Tabla_paquetes_A_enviar.end (); it++)
+        {
+          data = std::to_string (appI->GetNode ()->GetId ()) + "," + std::to_string (cont + 1) +
+                 "," + std::to_string (it->Estado) + "," +
+                 std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0) + "," +
+                 std::to_string (appI->m_broadcast_time.GetSeconds ()) + "," +
+                 std::to_string (n_iteracion)+ "\n";
+          fprintf (datos, data.c_str ());
+          cont++;
+        }
+      //std::string data = appI->ObtenDAtosNodo () + "\n";
     }
+  fclose (datos);
   /*
   fprintf (datos, "Nodo;Paquetes creados;Paquetes retransmitidos;Paquetes Duplicados;Paquetes "
                   "Recibidos;Paquetes Reenviados;Retardo promedio (ms);Paquetes recibidos por el "
@@ -347,16 +370,16 @@ main (int argc, char *argv[])
       // std::cout<<"Nodo "+std::to_string (i) +"**\n"+appI->m_NextData<<std::endl;
       //appI->PrintNeighbors ();
     }
+*/
 
-  fclose (datos);*/
-  for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
+  /*for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
       //std::ostringstream oss;
       // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;
       Ptr<CustomApplication> app_i =
           DynamicCast<CustomApplication> (SecundariosA.Get (i)->GetApplication (0));
       app_i->ImprimeTabla ();
-    }
+    }*/
   //Termina la simulación
   Simulator::Destroy ();
   //system ("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &");

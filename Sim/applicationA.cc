@@ -276,6 +276,8 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
         {
           it->Tiempo_de_recibo_envio = Now () - it->Tiempo_ultimo_envio;
           it->Estado = true;
+          it++;
+          it->Tiempo_ultimo_envio=Now();
           break;
         }
     }
@@ -330,10 +332,10 @@ CustomApplication::ObtenDAtosNodo ()
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
       datos =
-          std::to_string (GetNode ()->GetId ()) + std::to_string (cont) +
-          std::to_string(it->Estado)+
-          std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0) +
-          std::to_string (m_broadcast_time.GetSeconds()) + "\n";
+          std::to_string (GetNode ()->GetId ())+"," + std::to_string (cont+1)+"," +
+          std::to_string(it->Estado)+","+
+          std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0)+"," +
+          std::to_string (m_broadcast_time.GetSeconds()) + ",";
       cont++;
     }
   return datos;

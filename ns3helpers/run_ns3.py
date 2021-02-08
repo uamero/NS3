@@ -87,15 +87,28 @@ Argumentos de la simulacion
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);  --->>> por default es 1
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);   -->>>> por default es 1
   cmd.AddValue ("CSVFile", "Nombre del archivo CSV donde se almacenaran los resultados de la simulacion", CSVFile);
+  cmd.AddValue ("StartSim", "Comienza un escenario de simulacion nuevo", StartSimulation);
 """
-def FirstScenario():
-    aleat=random.randint(0,100)/100.0
-    nPTS=1
-    argumentos= ""
-
-    print ("IT Command "+str(i)+" : " + pwd + "/waf --run \"" + default_program +" --i=" + str(aleat) + "\"")
-    os.system(pwd + "/waf --run \"" + default_program+" --i="+str(aleat)+"\""+"\n")
-    return argumentos
+def FirstScenario(default_program,pwd):
+    #nPTS=[x for x in range (1,11)]
+    nPTS=[1,5,10]
+    CSVNames=["FirstSA.csv","FirstSB.csv","FirstSC.csv"]
+    TSimulation= [10,15,20]
+    nA=1#una lista de 1 a 10 nodos generadores
+    nB=[15,30,60]
+    nP=1
+    #for y in nB:
+    for x in range(3):#numero de paquetes a enviar
+        Start="true" 
+        for n_iteracion in range(10):
+            aleat=random.randint(1,100)/100.0       
+            print ("IT Command "+str(n_iteracion)+" |nPTS: "+str(x)+" : " + pwd + "/waf --run \"" + default_program +" --i=" + str(aleat) + "\"")
+            argumentos= " --i="+str(aleat)+ " --nPTS="+str(nPTS[x])+" --nA="+str(nA)+" --nB="+str(nB[0])+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVNames[x]+" --t="+str(TSimulation[x])      
+            os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+            Start="false"
+        
+    #os.system("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &")
 def main(argv):
     """Main function"""
     #Get the present working directory
@@ -131,7 +144,7 @@ def main(argv):
     #If running without arguments...
     if len(argv) == 0:
         #Printing the command string so that users can see if they're not running the intended program.
-        aleat=random.randint(0,100)/100.0
+        """aleat=random.randint(0,100)/100.0
         i=0
         if print_details:
              #print "Program is not supplied with parameters"
@@ -141,7 +154,8 @@ def main(argv):
         #os.system(pwd + "/waf --run " + default_program)
         os.system(pwd + "/waf --run \"" + default_program+" --i="+str(aleat)+"\""+"\n")
         #Set NS3_PROGRAM to the last executed program (not needed. This should be removed later.)
-        #os.environ['NS3_PROGRAM'] = default_program
+        #os.environ['NS3_PROGRAM'] = default_program"""
+        FirstScenario(default_program,pwd)
     else:
         #Program have more than zero arguments, so we go through them in a loop, and use build a command string.
         #The default command string with a quotation mark added..

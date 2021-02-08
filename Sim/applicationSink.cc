@@ -150,7 +150,7 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
     { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK
       Guarda_Paquete_para_ACK (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                                tag.GetTimestamp (), tag.GetTypeOfPacket ());
-      ImprimeTabla ();
+      //ImprimeTabla ();
     }
   return true;
 }

@@ -90,16 +90,18 @@ public:
   bool VerificaCanal(uint8_t ch);
   std::string ObtenDAtosNodo();
   uint32_t CuentaPQTSEntregados();
+  std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar;/**> Lista de paquetes a enviar*/
+  Time m_broadcast_time; /**< How often do you broadcast messages */
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
   void StartApplication ();
-  Time m_broadcast_time; /**< How often do you broadcast messages */
+ 
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
 
   std::vector<NeighborInformation> m_neighbors; /**< A table representing neighbors of this node */
-  std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar;/**> Lista de paquetes a enviar*/
+ 
   std::list<ST_Reenvios> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
   std::list<ST_Canales> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
