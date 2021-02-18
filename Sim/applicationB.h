@@ -51,6 +51,7 @@ public:
                       const Address &sender);
 
   void SetBroadcastInterval (Time interval);
+  Time GetBroadcastInterval ();
 
   /** \brief Update a neighbor's last contact time, or add a new neighbor
              */
@@ -77,6 +78,8 @@ public:
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID(uint8_t ch,uint32_t ID,Time timD);
   bool VerificaCanal(uint8_t ch);
+  std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
+  std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes confirmados de entrega por el sink*/
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -85,8 +88,7 @@ private:
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
 
   std::vector<NeighborInformationB> m_neighbors; /**< A table representing neighbors of this node */
-  std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
-  std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes a reenviar*/
+ 
   std::list<ST_CanalesB> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */

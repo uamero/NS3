@@ -8,6 +8,7 @@
 #include "applicationSink.h" //Nodo Sink
 #include "ns3/netanim-module.h"
 #include "My-tag.h"
+#include "ns3/random-variable-stream.h"
 
 #include <iostream>
 #include <fstream>
@@ -74,26 +75,29 @@ main (int argc, char *argv[])
 {
 
   // datos<<"Hola1"<<std::end;
-  Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-
+ 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
   uint32_t n_SecundariosA = 1; //Numero de nodos en la red
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
-  double simTime = 10; //Tiempo de simulación
+  uint32_t Semilla_Sim=1;
+  double simTime = 100; //Tiempo de simulación
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
-  double interval = 0.5; //intervalo de broadcast
+  double intervalA = 1; //intervalo de broadcast
+  double intervalB = 6; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
-      1; //numero de paquetes a ser creados por cada uno de los nodos generadores
+      100; //numero de paquetes a ser creados por cada uno de los nodos generadores
   std::string CSVFile = "default.csv";
   bool StartSimulation = true;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
+  cmd.AddValue ("Seed", "Semilla de la simulacion", Semilla_Sim);
   cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
-  cmd.AddValue ("i", "Duración del intervalo de broadcast", interval);
+  cmd.AddValue ("iA", "Duración del intervalo de broadcast", intervalA);
+  cmd.AddValue ("iB", "Duración del intervalo de broadcast", intervalB);
   cmd.AddValue ("nA", "Numero de nodos generadores", n_SecundariosA);
   cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB);
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
@@ -104,6 +108,9 @@ main (int argc, char *argv[])
                 CSVFile);
 
   cmd.Parse (argc, argv);
+
+  SeedManager::SetSeed(Semilla_Sim);
+  Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
   NodeContainer SecundariosB;
@@ -238,7 +245,7 @@ main (int argc, char *argv[])
   //wifiPhy.EnableAscii("Manet-Node-",devices);
   //wifiPhy.EnablePcap("Manet-Node-",devices);
 
-  AnimationInterface anim ("manetPB.xml");
+  //AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
 
@@ -248,13 +255,13 @@ main (int argc, char *argv[])
       //std::ostringstream oss;
       // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;
       Ptr<CustomApplication> app_i = CreateObject<CustomApplication> ();
-      app_i->SetBroadcastInterval (Seconds (interval));
+      app_i->SetBroadcastInterval (Seconds (intervalA));
       app_i->SetStartTime (Seconds (0));
       app_i->SetStopTime (Seconds (simTime));
       app_i->setSemilla (i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       SecundariosA.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
+      //anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
       //app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
@@ -262,33 +269,36 @@ main (int argc, char *argv[])
       //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
       //std::ostringstream oss;
       Ptr<CustomApplicationBnodes> app_i = CreateObject<CustomApplicationBnodes> ();
-      app_i->SetBroadcastInterval (Seconds (interval));
+      //app_i->SetBroadcastInterval (Seconds (rand->GetInteger (1, 10)));
+      app_i->SetBroadcastInterval (Seconds(intervalB));
       app_i->SetStartTime (Seconds (0));
       app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+      std::cout << "El tiempo de broadcas en el nodo " << app_i->GetNode ()->GetId ()
+                << " es :" << app_i->GetBroadcastInterval ().GetSeconds() << std::endl;
+      // anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
     {
       //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
       //std::ostringstream oss;
       Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
-      app_i->SetBroadcastInterval (Seconds (interval));
+      //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
       app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+      //anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
       //std::cout<< "ID3: "<< Sink.Get(i)->GetId()<<std::endl;
       //std::ostringstream oss;
       Ptr<ApplicationSink> app_i = CreateObject<ApplicationSink> ();
-      app_i->SetBroadcastInterval (Seconds (interval));
+      //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
       app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      //anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
     }
 
   /*Termina instalación de la aplicación*/
@@ -302,26 +312,26 @@ main (int argc, char *argv[])
   //double new_range = 10;
 
   // Config::Set("/NodeList/"+ std::to_string(Sink.Get(0)->GetId())+"/DeviceList/*/$ns3::WifiNetDevice/Channel/$ns3::YansWifiChannel/PropagationLossModel/$ns3::RangePropagationLossModel/MaxRange", DoubleValue(new_range) );
-  Simulator::Stop (Seconds (simTime));
+  //Simulator::Stop (Seconds (simTime));
   Simulator::Run (); //Termina simulación
   //std::cout << "Post Simulation: " << std::endl;
   FILE *datos;
   if (StartSimulation)
     {
-       std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile; 
-      datos = fopen (ruta.c_str(), "w");
-     /* std::string info =
+      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+      datos = fopen (ruta.c_str (), "w");
+      /* std::string info =
           "Información de la simulación | Secundarios A: " + std::to_string (n_SecundariosA) +
           " | Secundarios B: " + std::to_string (n_SecundariosB) + "| Primarios " +
           std::to_string (n_Primarios) + "\n";
       fprintf (datos, info.c_str ());*/
-      fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega (ms), Tiempo de "
-                      "broadcast,Iteración \n");
+      fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega (s), Tiempo de "
+                      "broadcast,No. SEQ, Veces enviado,Tamaño en bytes,Iteración,Semilla \n");
     }
   else
     {
-      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile; 
-      datos = fopen (ruta.c_str(), "a");
+      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+      datos = fopen (ruta.c_str (), "a");
     }
 
   for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
@@ -335,15 +345,28 @@ main (int argc, char *argv[])
         {
           data = std::to_string (appI->GetNode ()->GetId ()) + "," + std::to_string (cont + 1) +
                  "," + std::to_string (it->Estado) + "," +
-                 std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0) + "," +
+                 std::to_string (it->Tiempo_de_recibo_envio.GetSeconds ()) + "," +
                  std::to_string (appI->m_broadcast_time.GetSeconds ()) + "," +
-                 std::to_string (n_iteracion)+ "\n";
+                 std::to_string (it->numeroSEQ) + "," + std::to_string (it->NumeroDeEnvios) + "," +
+                 std::to_string (it->Tam_Paquete) + "," + std::to_string (n_iteracion) +","+
+                  std::to_string (Semilla_Sim)+"\n";
           fprintf (datos, data.c_str ());
           cont++;
         }
+      appI->ImprimeTabla ();
       //std::string data = appI->ObtenDAtosNodo () + "\n";
     }
   fclose (datos);
+
+  Ptr<ApplicationSink> appI = DynamicCast<ApplicationSink> (Sink.Get (0)->GetApplication (0));
+  appI->ImprimeTabla ();
+  for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
+    {
+      Ptr<CustomApplicationBnodes> appI =
+          DynamicCast<CustomApplicationBnodes> (SecundariosB.Get (i)->GetApplication (0));
+      appI->ImprimeTabla ();
+    }
+
   /*
   fprintf (datos, "Nodo;Paquetes creados;Paquetes retransmitidos;Paquetes Duplicados;Paquetes "
                   "Recibidos;Paquetes Reenviados;Retardo promedio (ms);Paquetes recibidos por el "

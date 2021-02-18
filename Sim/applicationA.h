@@ -14,6 +14,7 @@ typedef struct
   Mac48Address neighbor_mac;
   Time last_beacon;
 } NeighborInformation;
+
 typedef struct
 {
   u_long numeroSEQ;
@@ -23,7 +24,7 @@ typedef struct
   Time Tiempo_de_recibo_envio;
   uint32_t NumeroDeEnvios;
   bool Estado; /**> true -> el paquete ha sido entregado*/
-} ST_Paquete_A_Enviar;
+}ST_Paquete_A_Enviar;
 typedef struct
 {
   u_long numeroSEQ;
@@ -31,7 +32,7 @@ typedef struct
   uint32_t Tam_Paquete;
   Time Tiempo_ultimo_envio;
   int32_t tipo_de_paquete;
-} ST_Reenvios;
+}ST_Reenvios;
 typedef struct 
 {
   uint8_t m_chanels;
@@ -90,6 +91,7 @@ public:
   bool VerificaCanal(uint8_t ch);
   std::string ObtenDAtosNodo();
   uint32_t CuentaPQTSEntregados();
+  bool VerificaFinDeSimulacion();
   std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar;/**> Lista de paquetes a enviar*/
   Time m_broadcast_time; /**< How often do you broadcast messages */
 private:

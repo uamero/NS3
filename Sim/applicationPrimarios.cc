@@ -34,7 +34,7 @@ CustomApplicationPnodes::GetInstanceTypeId () const
 
 CustomApplicationPnodes::CustomApplicationPnodes ()
 {
-  m_broadcast_time = MilliSeconds (13); //every 13ms
+  m_broadcast_time = MilliSeconds (101); //every 101ms
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_PacketSize = 10;

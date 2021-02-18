@@ -34,9 +34,9 @@ CustomApplication::GetInstanceTypeId () const
 
 CustomApplication::CustomApplication ()
 {
-  m_broadcast_time = MilliSeconds (100); //every 100ms
+  m_broadcast_time = Seconds (1); //every 100ms
   m_packetSize = 1000; //1000 bytes
-  m_Tiempo_de_reenvio = Seconds (3.0); //Tiempo para reenviar los paquetes
+  m_Tiempo_de_reenvio = Seconds (1); //Tiempo para reenviar los paquetes
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
@@ -69,7 +69,6 @@ CustomApplication::StartApplication ()
     }
   if (m_wifiDevice)
     {
-
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
@@ -123,16 +122,19 @@ CustomApplication::BroadcastInformation ()
           tag.SetChanels (ch);
           if (it->NumeroDeEnvios == 0)
             {
-
               tag.SetTypeOfpacket (0);
+              it->NumeroDeEnvios += 1;
+              packet->AddPacketTag (tag);
+              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
             }
           else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
             {
               tag.SetTypeOfpacket (1);
+              it->NumeroDeEnvios += 1;
+              packet->AddPacketTag (tag);
+              m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
             }
-          it->NumeroDeEnvios += 1;
-          packet->AddPacketTag (tag);
-          m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+          
           break;
         }
       else if (m_Paquetes_A_Reenviar.size () != 0)
@@ -155,6 +157,11 @@ CustomApplication::BroadcastInformation ()
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
+  std::cout<<Now().GetSeconds()<<std::endl;
+  if(VerificaFinDeSimulacion() || Now() >= Seconds(10000)){
+    std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
+      Simulator::Stop();
+  }
 }
 
 bool
@@ -235,10 +242,9 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
 
   for (uint32_t i = 0; i < PQts_A_enviar; i++)
     {
-      ST_Paquete_A_Enviar Paquete;
-
+      ST_Paquete_A_Enviar Paquete; 
+      
       Paquete.ID_Creador = ID;
-
       Paquete.numeroSEQ = CalculaSeqNumber (&m_semilla);
       Paquete.Tam_Paquete = m_packetSize;
       Paquete.Tiempo_ultimo_envio = Now ();
@@ -320,7 +326,7 @@ CustomApplication::ImprimeTabla ()
       std::cout << "\t SEQnumber: " << it->numeroSEQ << "\t PacketSize: " << it->Tam_Paquete
                 << "\t N. Veces enviado: " << it->NumeroDeEnvios << "\t Estado: " << it->Estado
                 << "\t Tiempo de entrega: "
-                << (it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0 << " ms" << std::endl;
+                << (it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0 << " s" << std::endl;
     }
 }
 std::string
@@ -457,5 +463,18 @@ CustomApplication::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
       Nch.Tiempo_ultima_actualizacion = Now ();
     }
   return find;
+}
+bool
+CustomApplication::VerificaFinDeSimulacion(){
+  bool find = true;
+  for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
+       it != m_Tabla_paquetes_A_enviar.end (); it++)
+    {
+      if(!it->Estado){
+        find = false;
+        break;
+      }
+    }
+    return find;
 }
 } // namespace ns3
