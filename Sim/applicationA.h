@@ -94,6 +94,7 @@ public:
   bool VerificaFinDeSimulacion();
   std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar;/**> Lista de paquetes a enviar*/
   Time m_broadcast_time; /**< How often do you broadcast messages */
+  Time m_simulation_time;
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */

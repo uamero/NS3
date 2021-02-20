@@ -9,6 +9,7 @@
 #include "ns3/netanim-module.h"
 #include "My-tag.h"
 #include "ns3/random-variable-stream.h"
+#include "ns3/gnuplot.h"
 
 #include <iostream>
 #include <fstream>
@@ -70,24 +71,54 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
                 << std::endl;
     }
 }
+/*void CreaGraficoNodoA(Time TS){
+  std::string fileNameWithNoExtension = "GraficaN-A-with-error-bars";
+  std::string graphicsFileName        = fileNameWithNoExtension + ".png";
+  std::string plotFileName            = fileNameWithNoExtension + ".plt";
+  std::string dataTitle               = "Envio de 100 paquetes";
+  Gnuplot plot (graphicsFileName);
+  plot.SetTerminal("png");
+  plot.SetLegend("TR","TTS");
+  plot.AppendExtra("set xrange[0:"+std::to_string(TS.GetSeconds())+"]");
+
+
+  Gnuplot2dDataset dataset;
+  dataset.SetStyle (Gnuplot2dDataset::LINES_POINTS);
+
+
+  // Add the dataset to the plot.
+  plot.AddDataset (dataset);
+
+  // Open the plot file.
+  std::ofstream plotFile (plotFileName.c_str());
+
+  // Write the plot file.
+  plot.GenerateOutput (plotFile);
+
+  // Close the plot file.
+  plotFile.close ();
+}*/
+void
+Escenario_Uno ()
+{
+}
 int
 main (int argc, char *argv[])
 {
-
   // datos<<"Hola1"<<std::end;
- 
+
   CommandLine cmd;
   uint32_t n_iteracion = 0;
   uint32_t n_SecundariosA = 1; //Numero de nodos en la red
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
-  uint32_t Semilla_Sim=1;
+  uint32_t Semilla_Sim = 1;
   double simTime = 100; //Tiempo de simulación
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
   double intervalA = 1; //intervalo de broadcast
-  double intervalB = 6; //intervalo de broadcast
+  double intervalB = 4; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
       100; //numero de paquetes a ser creados por cada uno de los nodos generadores
@@ -109,7 +140,7 @@ main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
-  SeedManager::SetSeed(Semilla_Sim);
+  SeedManager::SetSeed (Semilla_Sim);
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
@@ -257,8 +288,8 @@ main (int argc, char *argv[])
       Ptr<CustomApplication> app_i = CreateObject<CustomApplication> ();
       app_i->SetBroadcastInterval (Seconds (intervalA));
       app_i->SetStartTime (Seconds (0));
-      app_i->SetStopTime (Seconds (simTime));
-      app_i->setSemilla (i);
+      //app_i->SetStopTime (Seconds (simTime));
+      app_i->setSemilla (Semilla_Sim+i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       SecundariosA.Get (i)->AddApplication (app_i);
       //anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
@@ -270,12 +301,12 @@ main (int argc, char *argv[])
       //std::ostringstream oss;
       Ptr<CustomApplicationBnodes> app_i = CreateObject<CustomApplicationBnodes> ();
       //app_i->SetBroadcastInterval (Seconds (rand->GetInteger (1, 10)));
-      app_i->SetBroadcastInterval (Seconds(intervalB));
+      app_i->SetBroadcastInterval (Seconds (intervalB));
       app_i->SetStartTime (Seconds (0));
-      app_i->SetStopTime (Seconds (simTime));
+      //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
-      std::cout << "El tiempo de broadcas en el nodo " << app_i->GetNode ()->GetId ()
-                << " es :" << app_i->GetBroadcastInterval ().GetSeconds() << std::endl;
+     // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
+      //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
       // anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
@@ -285,7 +316,7 @@ main (int argc, char *argv[])
       Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
       //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
-      app_i->SetStopTime (Seconds (simTime));
+      //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
       //anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
@@ -296,7 +327,7 @@ main (int argc, char *argv[])
       Ptr<ApplicationSink> app_i = CreateObject<ApplicationSink> ();
       //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
-      app_i->SetStopTime (Seconds (simTime));
+      //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
       //anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
     }
@@ -314,6 +345,12 @@ main (int argc, char *argv[])
   // Config::Set("/NodeList/"+ std::to_string(Sink.Get(0)->GetId())+"/DeviceList/*/$ns3::WifiNetDevice/Channel/$ns3::YansWifiChannel/PropagationLossModel/$ns3::RangePropagationLossModel/MaxRange", DoubleValue(new_range) );
   //Simulator::Stop (Seconds (simTime));
   Simulator::Run (); //Termina simulación
+
+  /*###################################################################################*/
+  /*###################################################################################*/
+  /*Termina lasimulacion */
+  /*###################################################################################*/
+  /*###################################################################################*/
   //std::cout << "Post Simulation: " << std::endl;
   FILE *datos;
   if (StartSimulation)
@@ -325,8 +362,9 @@ main (int argc, char *argv[])
           " | Secundarios B: " + std::to_string (n_SecundariosB) + "| Primarios " +
           std::to_string (n_Primarios) + "\n";
       fprintf (datos, info.c_str ());*/
-      fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega (s), Tiempo de "
-                      "broadcast,No. SEQ, Veces enviado,Tamaño en bytes,Iteración,Semilla \n");
+      fprintf (datos,
+               "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
+               "enviado,Tamaño en bytes,Iteración,Semilla,TTS,No. Paquetes a enviar,TA,TB \n");
     }
   else
     {
@@ -346,63 +384,34 @@ main (int argc, char *argv[])
           data = std::to_string (appI->GetNode ()->GetId ()) + "," + std::to_string (cont + 1) +
                  "," + std::to_string (it->Estado) + "," +
                  std::to_string (it->Tiempo_de_recibo_envio.GetSeconds ()) + "," +
-                 std::to_string (appI->m_broadcast_time.GetSeconds ()) + "," +
                  std::to_string (it->numeroSEQ) + "," + std::to_string (it->NumeroDeEnvios) + "," +
-                 std::to_string (it->Tam_Paquete) + "," + std::to_string (n_iteracion) +","+
-                  std::to_string (Semilla_Sim)+"\n";
-          fprintf (datos, data.c_str ());
+                 std::to_string (it->Tam_Paquete) + "," + std::to_string (n_iteracion) + "," +
+                 std::to_string (Semilla_Sim) + "," +
+                 std::to_string (appI->m_simulation_time.GetSeconds ()) + "," +
+                 std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "," +
+                 std::to_string (intervalB) + "\n";
+
+          if(it->Estado){
+              fprintf (datos, data.c_str ());
+          }       
+          
           cont++;
         }
-      appI->ImprimeTabla ();
+      //appI->ImprimeTabla ();
       //std::string data = appI->ObtenDAtosNodo () + "\n";
     }
+
   fclose (datos);
 
-  Ptr<ApplicationSink> appI = DynamicCast<ApplicationSink> (Sink.Get (0)->GetApplication (0));
+  /*Ptr<ApplicationSink> appI = DynamicCast<ApplicationSink> (Sink.Get (0)->GetApplication (0));
   appI->ImprimeTabla ();
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
     {
       Ptr<CustomApplicationBnodes> appI =
           DynamicCast<CustomApplicationBnodes> (SecundariosB.Get (i)->GetApplication (0));
-      appI->ImprimeTabla ();
-    }
-
-  /*
-  fprintf (datos, "Nodo;Paquetes creados;Paquetes retransmitidos;Paquetes Duplicados;Paquetes "
-                  "Recibidos;Paquetes Reenviados;Retardo promedio (ms);Paquetes recibidos por el "
-                  "sink correctamente\n");
-  for (uint32_t i = 0; i < nodos.GetN (); i++)
-    {
-      Ptr<CustomApplication> appI =
-          DynamicCast<CustomApplication> (nodos.Get (i)->GetApplication (0));
-      std::string valores = std::to_string (i) + ";" +
-                            std::to_string (appI->m_ControlPakets._NPQ_WAS_Created) + ";" +
-                            std::to_string (appI->m_ControlPakets._NPQ_WAS_ReBroadcast) + ";" +
-                            std::to_string (appI->m_ControlPakets._NPQ_WAS_Duplicated) + ";" +
-                            std::to_string (appI->m_ControlPakets._NPQ_WAS_Received) + ";" +
-                            std::to_string (appI->m_ControlPakets._NPQ_WAS_ReSend) + ";" +
-                            std::to_string (appI->m_ControlPakets.delayOnNode) + ";" +
-                            std::to_string (appI->m_NumberOfPacketsOK) + "\n";
-      //+std::to_string(StringValue(appI->m_ControlPakets.delayOnNode))
-      fprintf (datos, valores.c_str ());
-      appI->PrintPrevSEQnumbers ();
-
-      NS_LOG_UNCOND ("\n\n****************************\n");
-      appI->printMessageOnBuffer ();
-
-      // std::cout<<"Nodo "+std::to_string (i) +"**\n"+appI->m_NextData<<std::endl;
-      //appI->PrintNeighbors ();
+      //appI->ImprimeTabla ();
     }
 */
-
-  /*for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
-    {
-      //std::ostringstream oss;
-      // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;
-      Ptr<CustomApplication> app_i =
-          DynamicCast<CustomApplication> (SecundariosA.Get (i)->GetApplication (0));
-      app_i->ImprimeTabla ();
-    }*/
   //Termina la simulación
   Simulator::Destroy ();
   //system ("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &");

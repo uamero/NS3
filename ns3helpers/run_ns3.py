@@ -51,6 +51,11 @@ import sys
 import os
 import sort_dir as sort_dir_obj
 import random
+import matplotlib.pyplot as plt 
+import pandas as pd
+import numpy as np
+
+
 from MyColor import MyColor
 from subprocess import Popen, PIPE, STDOUT
 from sys import platform
@@ -89,11 +94,53 @@ Argumentos de la simulacion
   cmd.AddValue ("CSVFile", "Nombre del archivo CSV donde se almacenaran los resultados de la simulacion", CSVFile);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulacion nuevo", StartSimulation);
 """
+def CalculaSemilla(default_program,pwd):
+    TA = 1
+    TB=1
+    nA=1
+    nPTS=1
+    nB=15
+    nP=1
+    n_iteracion = 1
+    Start="true"
+    CSVName="CalculoSemilla.csv"
+    n_iteracion
+    for x in range(1000):
+        seed=x+1
+        #seed=1
+        #print ("IT Command "+str(n_iteracion)+" |semilla: "+str(seed)+" |TB: "+str(TB[x])+" : " + pwd + "/waf --run \"" + default_program + "\"")        
+        argumentos= " --iA="+str(TA)+" --iB="+str(TB) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(nB)+" --nP="+str(nP)\
+        +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName +" --Seed="+str(seed)
+        os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+        Start="false"
+
+def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
+    datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
+    Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
+    TA = 1
+    TB= [1,2,3,4,5]
+    nA=1
+    nPTS=1
+    nB=15
+    nP=1
+    n_iteracion = 1
+    Start="true"
+    CSVName="Tiempo.csv"
+    for x in range(len(TB)):
+        for n_iteracion  in range(1):
+            seed=random.randint(1,2**32)
+            #seed=1
+            print ("IT Command "+str(n_iteracion)+" |semilla: "+str(seed)+" |TB: "+str(TB[x])+" : " + pwd + "/waf --run \"" + default_program + "\"")        
+            argumentos= " --iA="+str(TA)+" --iB="+str(TB[x]) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(nB)+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName +" --Seed="+str(seed)
+            os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+            Start="false"
+
 def FirstScenario(default_program,pwd):
     #nPTS=[x for x in range (1,11)]
     nPTS=[1,5,10]
     CSVNames=["FirstSA.csv","FirstSB.csv","FirstSC.csv"]
-    TSimulation= [10,15,20]
+    TSimulation= [100,150,200]
     nA=1#una lista de 1 a 10 nodos generadores
     nB=[15,30,60]
     nP=1
@@ -101,10 +148,11 @@ def FirstScenario(default_program,pwd):
     for x in range(3):#numero de paquetes a enviar
         Start="true" 
         for n_iteracion in range(10):
-            aleat=random.randint(1,100)/100.0       
-            print ("IT Command "+str(n_iteracion)+" |nPTS: "+str(x)+" : " + pwd + "/waf --run \"" + default_program +" --i=" + str(aleat) + "\"")
-            argumentos= " --i="+str(aleat)+ " --nPTS="+str(nPTS[x])+" --nA="+str(nA)+" --nB="+str(nB[0])+" --nP="+str(nP)\
-            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVNames[x]+" --t="+str(TSimulation[x])      
+            aleatA=random.randint(1,10)
+            aleatB=aleatA*5       
+            print ("IT Command "+str(n_iteracion)+" |nPTS: "+str(x)+" : " + pwd + "/waf --run \"" + default_program +" --iA=" + str(aleatA) + "\"")
+            argumentos= " --iA="+str(aleatA)+" --iB="+str(aleatB) +" --nPTS="+str(nPTS[x])+" --nA="+str(nA)+" --nB="+str(nB[0])+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVNames[x]+" --t="+str(TSimulation[0])      
             os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
             Start="false"
         
@@ -155,7 +203,9 @@ def main(argv):
         os.system(pwd + "/waf --run \"" + default_program+" --i="+str(aleat)+"\""+"\n")
         #Set NS3_PROGRAM to the last executed program (not needed. This should be removed later.)
         #os.environ['NS3_PROGRAM'] = default_program"""
-        FirstScenario(default_program,pwd)
+        #FirstScenario(default_program,pwd)
+        #Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd)
+        CalculaSemilla(default_program,pwd)
     else:
         #Program have more than zero arguments, so we go through them in a loop, and use build a command string.
         #The default command string with a quotation mark added..

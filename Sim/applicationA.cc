@@ -157,10 +157,12 @@ CustomApplication::BroadcastInformation ()
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
-  std::cout<<Now().GetSeconds()<<std::endl;
-  if(VerificaFinDeSimulacion() || Now() >= Seconds(10000)){
-    std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
-      Simulator::Stop();
+  //std::cout<<Now().GetSeconds()<<std::endl;
+  m_simulation_time=Now();
+  if(VerificaFinDeSimulacion() || Now() >= Seconds(100)){
+    //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
+    
+    Simulator::Stop();
   }
 }
 
