@@ -123,6 +123,7 @@ main (int argc, char *argv[])
   uint32_t n_Packets_A_Enviar =
       100; //numero de paquetes a ser creados por cada uno de los nodos generadores
   std::string CSVFile = "default.csv";
+  uint32_t MaxTimeToStop=100;
   bool StartSimulation = true;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
   cmd.AddValue ("Seed", "Semilla de la simulacion", Semilla_Sim);
@@ -134,6 +135,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
+  cmd.AddValue ("MTTS", "Tiempo Máximo para detener la simulacion", MaxTimeToStop);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
@@ -288,6 +290,7 @@ main (int argc, char *argv[])
       Ptr<CustomApplication> app_i = CreateObject<CustomApplication> ();
       app_i->SetBroadcastInterval (Seconds (intervalA));
       app_i->SetStartTime (Seconds (0));
+      app_i->SetMAxtime(Seconds(MaxTimeToStop));
       //app_i->SetStopTime (Seconds (simTime));
       app_i->setSemilla (Semilla_Sim+i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
@@ -364,7 +367,7 @@ main (int argc, char *argv[])
       fprintf (datos, info.c_str ());*/
       fprintf (datos,
                "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
-               "enviado,Tamaño en bytes,Iteración,Semilla,TTS,No. Paquetes a enviar,TA,TB \n");
+               "enviado,Tamaño en bytes,Iteración,Semilla,TTS,No. Paquetes a enviar,TA,TB,MTTS \n");
     }
   else
     {
@@ -389,8 +392,8 @@ main (int argc, char *argv[])
                  std::to_string (Semilla_Sim) + "," +
                  std::to_string (appI->m_simulation_time.GetSeconds ()) + "," +
                  std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "," +
-                 std::to_string (intervalB) + "\n";
-
+                 std::to_string (intervalB) + ","+
+                 std::to_string (MaxTimeToStop)+"\n";
           if(it->Estado){
               fprintf (datos, data.c_str ());
           }       

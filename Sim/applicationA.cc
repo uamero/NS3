@@ -94,7 +94,14 @@ CustomApplication::SetWifiMode (WifiMode mode)
 {
   m_mode = mode;
 }
-
+void
+CustomApplication::SetMAxtime(Time Maxtime){
+  m_Max_Time_To_Stop =  Maxtime;
+}
+Time
+CustomApplication::GetMAxtime(){
+  return m_Max_Time_To_Stop;
+}
 void
 CustomApplication::BroadcastInformation ()
 {
@@ -159,7 +166,7 @@ CustomApplication::BroadcastInformation ()
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
   //std::cout<<Now().GetSeconds()<<std::endl;
   m_simulation_time=Now();
-  if(VerificaFinDeSimulacion() || Now() >= Seconds(100)){
+  if(VerificaFinDeSimulacion() || Now() >= m_Max_Time_To_Stop){
     //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
     
     Simulator::Stop();

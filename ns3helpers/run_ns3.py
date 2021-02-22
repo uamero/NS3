@@ -118,23 +118,25 @@ def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
     datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
     Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
     TA = 1
-    TB= [1,2,3,4,5]
+    TB= [x for x in range (1,11)]
     nA=1
-    nPTS=1
+    nPTS=20
     nB=15
     nP=1
     n_iteracion = 1
-    Start="true"
-    CSVName="Tiempo.csv"
-    for x in range(len(TB)):
-        for n_iteracion  in range(1):
-            seed=random.randint(1,2**32)
+    CSVName="Tiempo_de_NB"
+    MTTS=5000
+    for x in TB:
+        n_iteracion=1
+        Start="true"    
+        for seed  in Semillas:
             #seed=1
-            print ("IT Command "+str(n_iteracion)+" |semilla: "+str(seed)+" |TB: "+str(TB[x])+" : " + pwd + "/waf --run \"" + default_program + "\"")        
-            argumentos= " --iA="+str(TA)+" --iB="+str(TB[x]) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(nB)+" --nP="+str(nP)\
-            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName +" --Seed="+str(seed)
+            print ("IT Command: "+" |semilla: "+str(seed)+" |TB: "+str(x)+" : " + pwd + "/waf --run \"" + default_program + "\"")        
+            argumentos= " --iA="+str(TA)+" --iB="+str(x) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(nB)+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName+str(x)+".csv" +" --Seed="+str(seed)+" --MTTS="+str(MTTS)    
             os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
             Start="false"
+            n_iteracion+=1
 
 def FirstScenario(default_program,pwd):
     #nPTS=[x for x in range (1,11)]
@@ -204,8 +206,8 @@ def main(argv):
         #Set NS3_PROGRAM to the last executed program (not needed. This should be removed later.)
         #os.environ['NS3_PROGRAM'] = default_program"""
         #FirstScenario(default_program,pwd)
-        #Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd)
-        CalculaSemilla(default_program,pwd)
+        Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd)
+        #CalculaSemilla(default_program,pwd)
     else:
         #Program have more than zero arguments, so we go through them in a loop, and use build a command string.
         #The default command string with a quotation mark added..
