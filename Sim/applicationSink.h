@@ -75,7 +75,6 @@ private:
   Time m_broadcast_time; /**< How often do you broadcast messages */
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
-  
   std::vector<NeighborInformation_sink> m_neighbors; /**< A table representing neighbors of this node */
   std::list<ST_Paquete_A_Enviar_sink> m_Tabla_paquetes_ACK;/**> Lista de paquetes a enviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list*/

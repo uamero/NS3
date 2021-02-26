@@ -117,7 +117,6 @@ CustomApplicationBnodes::BroadcastInformation ()
               tag.SetChanels (ch);
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-              m_Paquetes_A_Reenviar.erase (it);
               //std::cout << "El canal en B es : " << std::to_string (ch) << std::endl;
               break;
             }
@@ -128,7 +127,21 @@ CustomApplicationBnodes::BroadcastInformation ()
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplicationBnodes::BroadcastInformation, this);
 }
-
+void
+CustomApplicationBnodes::sendACK ()
+{
+  uint8_t ch = CanalesDisponibles ();
+  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
+  Ptr<Packet> packet = Create<Packet> (10);
+  CustomDataTag tag;
+  tag.SetNodeId (GetNode ()->GetId ());
+  tag.CopySEQNumber (m_SEQNumberToACK);
+  tag.SetTimestamp (Now ());
+  tag.SetTypeOfpacket (4);
+  tag.SetChanels (ch);
+  packet->AddPacketTag (tag);
+  m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+}
 bool
 CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                         uint16_t protocol, const Address &sender)
@@ -147,16 +160,21 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
   uint8_t ch = tag.GetChanels ();
-
+  if (tag.GetTypeOfPacket () != 4)
+    {
+      m_SEQNumberToACK = tag.GetSEQNumber ();
+    }
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) &&
       (tag.GetTypeOfPacket () == 0 || tag.GetTypeOfPacket () == 1) && device->GetIfIndex () == 0 &&
       VerificaCanal (ch))
     { // Si el numero de secuencia no esta en la tabla lo guarda para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
+      sendACK ();
     }
   else if (BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2 &&
-           device->GetIfIndex () == 0 && VerificaCanal (ch) && tag.GetTypeOfPacket () != 3)
+           device->GetIfIndex () == 0 && VerificaCanal (ch) && tag.GetTypeOfPacket () != 3 &&
+           tag.GetTypeOfPacket () != 4)
     { //El SEQ number ya se ha recibido previamente, hay que verificar
       //que no haya acuse de recibo por parte del sink
       if (!VerificaSEQRecibido (tag.GetSEQNumber ()))
@@ -170,18 +188,35 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
           NewP.tipo_de_paquete = tag.GetTypeOfPacket ();
           NewP.Estado = false;
           m_Paquetes_A_Reenviar.push_back (NewP);
+          sendACK ();
         }
     }
   else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex () == 1)
     { // paquete proveniente del sink para confirmar entrega de un paquete
       ConfirmaEntrega (tag.GetSEQNumber ());
     }
-  else if (tag.GetTypeOfPacket () == 3)
+  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 2)
     { //Es un paquete que probiene de los primarios
       std::bitset<8> ocu (ch);
       // std::cout << "B -> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
     }
+  else if (tag.GetTypeOfPacket () == 4 && device->GetIfIndex () == 0)
+    { /*Paquetes ACK, se elimina el paquete para no reenviarlo nuevamente*/
+      if (m_Paquetes_A_Reenviar.size () != 0)
+        {
+          for (std::list<ST_ReenviosB>::iterator it = m_Paquetes_A_Reenviar.begin ();
+               it != m_Paquetes_A_Reenviar.end (); it++)
+            {
+              if (it->numeroSEQ == tag.GetSEQNumber ())
+                {
+                  m_Paquetes_A_Reenviar.erase (it);
+                  break;
+                }
+            }
+        }
+    }
+
   return true;
 }
 

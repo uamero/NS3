@@ -99,7 +99,7 @@ CustomApplicationPnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
 
-  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
+  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (2));
   Ptr<Packet> packet = Create<Packet> (m_PacketSize);
   CustomDataTag tag;
   // El timestamp se configrua dentro del constructor del tag

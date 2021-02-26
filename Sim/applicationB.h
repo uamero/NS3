@@ -78,6 +78,7 @@ public:
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID(uint8_t ch,uint32_t ID,Time timD);
   bool VerificaCanal(uint8_t ch);
+  void sendACK();
   std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
   std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes confirmados de entrega por el sink*/
 private:
@@ -86,9 +87,8 @@ private:
   void StartApplication ();
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
-
   std::vector<NeighborInformationB> m_neighbors; /**< A table representing neighbors of this node */
- 
+  u_long m_SEQNumberToACK;
   std::list<ST_CanalesB> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */

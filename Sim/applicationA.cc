@@ -95,11 +95,13 @@ CustomApplication::SetWifiMode (WifiMode mode)
   m_mode = mode;
 }
 void
-CustomApplication::SetMAxtime(Time Maxtime){
-  m_Max_Time_To_Stop =  Maxtime;
+CustomApplication::SetMAxtime (Time Maxtime)
+{
+  m_Max_Time_To_Stop = Maxtime;
 }
 Time
-CustomApplication::GetMAxtime(){
+CustomApplication::GetMAxtime ()
+{
   return m_Max_Time_To_Stop;
 }
 void
@@ -141,7 +143,7 @@ CustomApplication::BroadcastInformation ()
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
             }
-          
+
           break;
         }
       else if (m_Paquetes_A_Reenviar.size () != 0)
@@ -153,7 +155,6 @@ CustomApplication::BroadcastInformation ()
           tag.CopySEQNumber (it->numeroSEQ);
           tag.SetTimestamp (it->Tiempo_ultimo_envio);
           tag.SetTypeOfpacket (it->tipo_de_paquete);
-
           Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
           packet->AddPacketTag (tag);
           m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
@@ -165,14 +166,29 @@ CustomApplication::BroadcastInformation ()
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
   //std::cout<<Now().GetSeconds()<<std::endl;
-  m_simulation_time=Now();
-  if(VerificaFinDeSimulacion() || Now() >= m_Max_Time_To_Stop){
-    //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
-    
-    Simulator::Stop();
-  }
-}
+  m_simulation_time = Now ();
+  if (VerificaFinDeSimulacion () || Now () >= m_Max_Time_To_Stop)
+    {
+      //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
 
+      Simulator::Stop ();
+    }
+}
+void
+CustomApplication::sendACK ()
+{
+  uint8_t ch = CanalesDisponibles ();
+  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
+  Ptr<Packet> packet = Create<Packet> (10);
+  CustomDataTag tag;
+  tag.SetNodeId (GetNode ()->GetId ());
+  tag.CopySEQNumber (m_SEQNumberToACK);
+  tag.SetTimestamp (Now ());
+  tag.SetTypeOfpacket (4);
+  tag.SetChanels (ch);
+  packet->AddPacketTag (tag);
+  m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+}
 bool
 CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                   uint16_t protocol, const Address &sender)
@@ -193,20 +209,37 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
   // std::cout<<"No se Confirmooooo entrega ################### device ID: "<<device->GetIfIndex()<<
   //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
   uint8_t ch = tag.GetChanels ();
+
+  if (tag.GetTypeOfPacket () != 4)
+    {
+      m_SEQNumberToACK = tag.GetSEQNumber ();
+    }
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex () == 0 && VerificaCanal (ch))
     { // Si el numero de secuencia no esta ne la tabla lo guarda para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
+      sendACK();
     }
   else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex () == 1)
     { //Paquete proveniente del Sink
       ConfirmaEntrega (tag.GetSEQNumber ());
     }
-  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 0)
+  else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == 2)
     { //Paquete proveniente de los usuarios primarios
       //std::bitset<8> ocu(ch);
       //std::cout << "A-> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
+    }
+  else if (tag.GetTypeOfPacket () == 4 && device->GetIfIndex () == 0)
+    { //ACK de los nodos B
+      for (std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
+           it != m_Paquetes_A_Reenviar.end ();it++)
+        {
+            if(it->numeroSEQ == tag.GetSEQNumber()){
+              m_Paquetes_A_Reenviar.erase (it);
+            }
+        }
+      
     }
   return true;
 }
@@ -251,8 +284,8 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
 
   for (uint32_t i = 0; i < PQts_A_enviar; i++)
     {
-      ST_Paquete_A_Enviar Paquete; 
-      
+      ST_Paquete_A_Enviar Paquete;
+
       Paquete.ID_Creador = ID;
       Paquete.numeroSEQ = CalculaSeqNumber (&m_semilla);
       Paquete.Tam_Paquete = m_packetSize;
@@ -292,7 +325,7 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
           it->Tiempo_de_recibo_envio = Now () - it->Tiempo_ultimo_envio;
           it->Estado = true;
           it++;
-          it->Tiempo_ultimo_envio=Now();
+          it->Tiempo_ultimo_envio = Now ();
           break;
         }
     }
@@ -301,7 +334,7 @@ std::list<ST_Reenvios>::iterator
 CustomApplication::GetReenvio ()
 {
   std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
-  m_Paquetes_A_Reenviar.erase (it);
+  //m_Paquetes_A_Reenviar.erase (it);
   return it;
 }
 bool
@@ -346,11 +379,10 @@ CustomApplication::ObtenDAtosNodo ()
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
-      datos =
-          std::to_string (GetNode ()->GetId ())+"," + std::to_string (cont+1)+"," +
-          std::to_string(it->Estado)+","+
-          std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0)+"," +
-          std::to_string (m_broadcast_time.GetSeconds()) + ",";
+      datos = std::to_string (GetNode ()->GetId ()) + "," + std::to_string (cont + 1) + "," +
+              std::to_string (it->Estado) + "," +
+              std::to_string ((it->Tiempo_de_recibo_envio.GetMilliSeconds ()) / 1000.0) + "," +
+              std::to_string (m_broadcast_time.GetSeconds ()) + ",";
       cont++;
     }
   return datos;
@@ -474,16 +506,18 @@ CustomApplication::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
   return find;
 }
 bool
-CustomApplication::VerificaFinDeSimulacion(){
+CustomApplication::VerificaFinDeSimulacion ()
+{
   bool find = true;
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
-      if(!it->Estado){
-        find = false;
-        break;
-      }
+      if (!it->Estado)
+        {
+          find = false;
+          break;
+        }
     }
-    return find;
+  return find;
 }
 } // namespace ns3

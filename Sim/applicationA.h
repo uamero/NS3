@@ -97,6 +97,7 @@ public:
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Time m_simulation_time;
   Time m_Max_Time_To_Stop;
+  void sendACK();
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -106,7 +107,7 @@ private:
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
 
   std::vector<NeighborInformation> m_neighbors; /**< A table representing neighbors of this node */
- 
+  u_long m_SEQNumberToACK;
   std::list<ST_Reenvios> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
   std::list<ST_Canales> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
