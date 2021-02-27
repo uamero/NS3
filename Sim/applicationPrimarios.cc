@@ -34,7 +34,7 @@ CustomApplicationPnodes::GetInstanceTypeId () const
 
 CustomApplicationPnodes::CustomApplicationPnodes ()
 {
-  m_broadcast_time = MilliSeconds (101); //every 101ms
+  m_broadcast_time = MilliSeconds (500); //every 101ms
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_PacketSize = 10;
@@ -133,8 +133,8 @@ CustomApplicationPnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
     */
 
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
-                                         << sender << " Size:" << packet->GetSize ());
-
+                                        << sender << " Size:" << packet->GetSize ());
+  
   return true;
 }
 

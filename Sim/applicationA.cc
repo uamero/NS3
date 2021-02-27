@@ -94,7 +94,7 @@ CustomApplication::SetWifiMode (WifiMode mode)
 {
   m_mode = mode;
 }
-void
+/*void
 CustomApplication::SetMAxtime (Time Maxtime)
 {
   m_Max_Time_To_Stop = Maxtime;
@@ -103,7 +103,7 @@ Time
 CustomApplication::GetMAxtime ()
 {
   return m_Max_Time_To_Stop;
-}
+}*/
 void
 CustomApplication::BroadcastInformation ()
 {
@@ -166,29 +166,15 @@ CustomApplication::BroadcastInformation ()
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
   //std::cout<<Now().GetSeconds()<<std::endl;
-  m_simulation_time = Now ();
+  /*m_simulation_time = Now ();
   if (VerificaFinDeSimulacion () || Now () >= m_Max_Time_To_Stop)
     {
       //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
 
       Simulator::Stop ();
-    }
+    }*/
 }
-void
-CustomApplication::sendACK ()
-{
-  uint8_t ch = CanalesDisponibles ();
-  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (0));
-  Ptr<Packet> packet = Create<Packet> (10);
-  CustomDataTag tag;
-  tag.SetNodeId (GetNode ()->GetId ());
-  tag.CopySEQNumber (m_SEQNumberToACK);
-  tag.SetTimestamp (Now ());
-  tag.SetTypeOfpacket (4);
-  tag.SetChanels (ch);
-  packet->AddPacketTag (tag);
-  m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-}
+
 bool
 CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                   uint16_t protocol, const Address &sender)
@@ -210,15 +196,12 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
   //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
   uint8_t ch = tag.GetChanels ();
 
-  if (tag.GetTypeOfPacket () != 4)
-    {
-      m_SEQNumberToACK = tag.GetSEQNumber ();
-    }
+  
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex () == 0 && VerificaCanal (ch))
     { // Si el numero de secuencia no esta ne la tabla lo guarda para reenviar
       Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
-      sendACK();
+      
     }
   else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex () == 1)
     { //Paquete proveniente del Sink
@@ -229,17 +212,6 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
       //std::bitset<8> ocu(ch);
       //std::cout << "A-> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
-    }
-  else if (tag.GetTypeOfPacket () == 4 && device->GetIfIndex () == 0)
-    { //ACK de los nodos B
-      for (std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
-           it != m_Paquetes_A_Reenviar.end ();it++)
-        {
-            if(it->numeroSEQ == tag.GetSEQNumber()){
-              m_Paquetes_A_Reenviar.erase (it);
-            }
-        }
-      
     }
   return true;
 }
@@ -306,6 +278,7 @@ void
 CustomApplication::Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador,
                                            uint32_t tam_del_paquete, Time timeStamp, int32_t type)
 {
+
   ST_Reenvios reenvio;
   reenvio.ID_Creador = ID_Creador;
   reenvio.numeroSEQ = SEQ;
@@ -313,6 +286,7 @@ CustomApplication::Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador,
   reenvio.Tiempo_ultimo_envio = timeStamp;
   reenvio.tipo_de_paquete = type;
   m_Paquetes_A_Reenviar.push_back (reenvio);
+
 }
 void
 CustomApplication::ConfirmaEntrega (u_long SEQ)
@@ -329,6 +303,13 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
           break;
         }
     }
+  for(std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();it !=m_Paquetes_A_Reenviar.end();it++){
+      if (it->numeroSEQ == SEQ)
+        {
+          m_Paquetes_A_Reenviar.erase (it);
+          break;
+        }
+  }  
 }
 std::list<ST_Reenvios>::iterator
 CustomApplication::GetReenvio ()

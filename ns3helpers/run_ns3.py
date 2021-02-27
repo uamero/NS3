@@ -115,16 +115,17 @@ def CalculaSemilla(default_program,pwd):
         Start="false"
 
 def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
-    datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
-    Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
+    #datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
+    #Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
+    Semillas = np.random.randint(1,2**32-1,(10,));
     TA = 1
     TB= [x for x in range (1,11)]
     nA=1
-    nPTS=20
+    nPTS=1
     nB=15
     nP=1
     n_iteracion = 1
-    CSVName="Tiempo_de_NB"
+    CSVName = "Tiempo_de_NB"
     MTTS=5000
     for x in TB:
         n_iteracion=1
