@@ -117,27 +117,28 @@ def CalculaSemilla(default_program,pwd):
 def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
     #datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
     #Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
-    Semillas = np.random.randint(1,2**32-1,(10,));
-    TA = 1
-    TB= [x for x in range (1,11)]
-    nA=1
+
+    #Generar las graficas incrementando los nodos A y B con una misma denciada de nodos P 
+    Semillas = np.random.randint(1,2**32-1,(10,));#Arreglo de 10 semillas
+    TA = 1 #Se generan paquetes cada 1s
+    nA=[1,5,15,30]
     nPTS=1
-    nB=15
+    nB=[15,60,120,250]
     nP=1
     n_iteracion = 1
-    CSVName = "Tiempo_de_NB"
-    MTTS=5000
-    for x in TB:
-        n_iteracion=1
+    CSVName = "Sim_"
+    rwp= "true"
+    seed=random.randint(0,9)
+    for x in nA:     
         Start="true"    
-        for seed  in Semillas:
-            #seed=1
-            print ("IT Command: "+" |semilla: "+str(seed)+" |TB: "+str(x)+" : " + pwd + "/waf --run \"" + default_program + "\"")        
-            argumentos= " --iA="+str(TA)+" --iB="+str(x) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(nB)+" --nP="+str(nP)\
-            +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName+str(x)+".csv" +" --Seed="+str(seed)+" --MTTS="+str(MTTS)    
+        for y  in nB:
+            print ("IT Command: "+" |semilla: "+str(Semillas[seed]) + pwd + "/waf --run \"" + default_program + "\"")        
+            argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(x)+" --nB="+str(y)+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(x)+"_nB_"+str(y)+".csv" +" --Seed="+str(Semillas[seed])\
+            +"--rwp="+rwp     
             os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
-            Start="false"
-            n_iteracion+=1
+            #Start="false"
+           
 
 def FirstScenario(default_program,pwd):
     #nPTS=[x for x in range (1,11)]
@@ -147,6 +148,7 @@ def FirstScenario(default_program,pwd):
     nA=1#una lista de 1 a 10 nodos generadores
     nB=[15,30,60]
     nP=1
+    
     #for y in nB:
     for x in range(3):#numero de paquetes a enviar
         Start="true" 

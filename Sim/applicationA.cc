@@ -166,8 +166,8 @@ CustomApplication::BroadcastInformation ()
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
   //std::cout<<Now().GetSeconds()<<std::endl;
-  /*m_simulation_time = Now ();
-  if (VerificaFinDeSimulacion () || Now () >= m_Max_Time_To_Stop)
+  m_simulation_time = Now ();
+  /*if (VerificaFinDeSimulacion () || Now () >= Seconds(1000))
     {
       //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
 

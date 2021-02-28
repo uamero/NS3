@@ -119,7 +119,7 @@ verifica_termino_Simulacion ()
             }
         }
     }
-  if (termina)
+  if (termina|| Now().GetSeconds()>=1000 )
     {
       m_Simulation_Time = Now ();
       Simulator::Stop ();
@@ -146,25 +146,21 @@ main (int argc, char *argv[])
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
   double intervalA = 1; //intervalo de broadcast
-  double intervalB = 1; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
       1; //numero de paquetes a ser creados por cada uno de los nodos generadores
   std::string CSVFile = "default.csv";
-  uint32_t MaxTimeToStop = 1000;
   bool StartSimulation = true;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
   cmd.AddValue ("Seed", "Semilla de la simulacion", Semilla_Sim);
   cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
   cmd.AddValue ("iA", "Duración del intervalo de broadcast", intervalA);
-  cmd.AddValue ("iB", "Duración del intervalo de broadcast", intervalB);
   cmd.AddValue ("nA", "Numero de nodos generadores", n_SecundariosA);
   cmd.AddValue ("nB", "Numero de nodos no generadores", n_SecundariosB);
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
   cmd.AddValue ("rwp", "Modelo de movilidad random Way point", RWP);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
-  cmd.AddValue ("MTTS", "Tiempo Máximo para detener la simulacion", MaxTimeToStop);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
@@ -345,7 +341,7 @@ main (int argc, char *argv[])
   //wifiPhy.EnableAscii("Manet-Node-",devices);
   //wifiPhy.EnablePcap("Manet-Node-",devices);
 
-  AnimationInterface anim ("manetPB.xml");
+  //AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
 
@@ -362,7 +358,7 @@ main (int argc, char *argv[])
       app_i->setSemilla (Semilla_Sim + i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       SecundariosA.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
+      //anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
       //app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
@@ -377,7 +373,7 @@ main (int argc, char *argv[])
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
       //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
-      anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+      //anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
     {
@@ -388,7 +384,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+      //anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
@@ -399,7 +395,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      //anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
     }
 
   /*Termina instalación de la aplicación*/
@@ -436,7 +432,7 @@ main (int argc, char *argv[])
       fprintf (datos, info.c_str ());*/
       fprintf (datos,
                "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
-               "enviado,Tamaño en bytes,Iteración,Semilla,TTS,No. Paquetes a enviar,TA,MTTS \n");
+               "enviado,Tamaño en bytes,Semilla,TTS,No. Paquetes a enviar,TA \n");
     }
   else
     {
@@ -457,11 +453,10 @@ main (int argc, char *argv[])
                  "," + std::to_string (it->Estado) + "," +
                  std::to_string (it->Tiempo_de_recibo_envio.GetSeconds ()) + "," +
                  std::to_string (it->numeroSEQ) + "," + std::to_string (it->NumeroDeEnvios) + "," +
-                 std::to_string (it->Tam_Paquete) + "," + std::to_string (n_iteracion) + "," +
+                 std::to_string (it->Tam_Paquete)  + "," +
                  std::to_string (Semilla_Sim) + "," +
-                 std::to_string (appI->m_simulation_time.GetSeconds ()) + "," +
-                 std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "," +
-                 std::to_string (MaxTimeToStop) + "\n";
+                 std::to_string (m_Simulation_Time.GetSeconds ()) + "," +
+                 std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "\n";
           if (it->Estado)
             {
               fprintf (datos, data.c_str ());
@@ -486,6 +481,8 @@ main (int argc, char *argv[])
 */
   //Termina la simulación
   Simulator::Destroy ();
+  std::string comando = "chmod 777 /home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+  system(comando.c_str());
   //system ("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &");
   return 0;
 }
