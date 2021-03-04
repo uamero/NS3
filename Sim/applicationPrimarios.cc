@@ -38,6 +38,7 @@ CustomApplicationPnodes::CustomApplicationPnodes ()
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_PacketSize = 10;
+  m_n_channels=8;
 }
 CustomApplicationPnodes::~CustomApplicationPnodes ()
 {
@@ -98,8 +99,9 @@ void
 CustomApplicationPnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-
-  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (2));
+  //std::cout<<"Primarios: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
+  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
+  
   Ptr<Packet> packet = Create<Packet> (m_PacketSize);
   CustomDataTag tag;
   // El timestamp se configrua dentro del constructor del tag
@@ -168,7 +170,7 @@ uint8_t
 CustomApplicationPnodes::GetCanales ()
 {
   //srand (time (NULL));
-  uint8_t canales = rand () % 255;
+  uint64_t canales = rand () % ((uint64_t)pow(2,m_n_channels)-1);
   return canales;
 }
 

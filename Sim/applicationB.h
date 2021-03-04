@@ -74,13 +74,15 @@ public:
   void Guarda_Paquete_reenvio(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
   Time timeStamp,int32_t type);
   std::list<ST_ReenviosB>::iterator GetReenvio();
-  uint8_t CanalesDisponibles();
+  void CanalesDisponibles();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID(uint8_t ch,uint32_t ID,Time timD);
   bool VerificaCanal(uint8_t ch);
-  
+  uint32_t m_n_channels;
   std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
   std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes confirmados de entrega por el sink*/
+  std::list<uint32_t> m_RangeOfChannels_Info;
+  void iniciaCanales();
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -89,6 +91,7 @@ private:
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   std::vector<NeighborInformationB> m_neighbors; /**< A table representing neighbors of this node */
   std::list<ST_CanalesB> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
+  std::list<uint32_t> m_Canales_Para_Utilizar;
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */
 };

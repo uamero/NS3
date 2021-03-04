@@ -64,6 +64,7 @@ public:
   
   uint32_t Corrimientos( uint32_t registro);
   uint8_t GetCanales();
+  uint32_t m_n_channels;
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */

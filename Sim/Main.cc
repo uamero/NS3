@@ -119,7 +119,7 @@ verifica_termino_Simulacion ()
             }
         }
     }
-  if (termina|| Now().GetSeconds()>=1000 )
+  if (termina || Now().GetSeconds()>=1000 )
     {
       m_Simulation_Time = Now ();
       Simulator::Stop ();
@@ -140,8 +140,11 @@ main (int argc, char *argv[])
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
+
+  uint32_t n_channels=8; // Numero de canales, por default 8
   uint32_t Semilla_Sim = 2;
   bool RWP = true;
+  bool homogeneo=true;
   double simTime = 1000; //Tiempo de simulación
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
@@ -160,6 +163,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("nPTS", "Numero de paquetes a generar", n_Packets_A_Enviar);
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
   cmd.AddValue ("rwp", "Modelo de movilidad random Way point", RWP);
+  cmd.AddValue ("hg", "Activa la parte heterogenea de la red, por default es homogeneo", homogeneo);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
@@ -231,13 +235,13 @@ main (int argc, char *argv[])
   /*Termina la configuración de la movilidad*/
 
   /*Configuración del canal(canales)*/
-  YansWifiChannelHelper wifiChannel; //= YansWifiChannelHelper::Default ();
+  //#########YansWifiChannelHelper wifiChannel; //= YansWifiChannelHelper::Default ();
   //wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
   //wifiChannel.SetPropagationDelay ("ns3::RandomPropagationDelayModel");
   //wifiChannel.AddPropagationLoss("ns3::ThreeLogDistancePropagationLossModel");
   //wifiChannel.AddPropagationLoss ("ns3::NakagamiPropagationLossModel");
-  wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (5));
+  //#########wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+  //#########wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (5));
   //wifiChannel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
 
   //wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue(30));
@@ -251,10 +255,41 @@ main (int argc, char *argv[])
   //wifiChannelPrimarios.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
   wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
                                            DoubleValue (15));
+  WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
+  wifiMac.SetType ("ns3::AdhocWifiMac");
+  WifiHelper wifi, wifiSink, wifiPrimarios;
+  wifi.SetStandard (WIFI_STANDARD_80211g);
+  wifiSink.SetStandard (WIFI_STANDARD_80211g);
+  wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
+  std::list<uint32_t> List_RangeOfChannels;
+  /*#####Implementación de los canales en los nodos tipo A y tipo B*/
+  for (uint32_t i=0;i<n_channels;i++){
+      YansWifiChannelHelper wifiChannel;
+      wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+      uint32_t distance;
+      if(homogeneo)
+        distance=5;   
+      else
+       distance=rand->GetInteger (2, 15);
+      List_RangeOfChannels.push_back(distance); 
+      wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (distance));
+      YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
+      wifiPhy.SetChannel (wifiChannel.Create ());
+      wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
+      wifiPhy.Set ("TxPowerEnd", DoubleValue (40)); //33
+      wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8
+      wifi.Install (wifiPhy, wifiMac, SecundariosA); //Device para comunicar a los nodos tipo A y B
+      wifi.Install (wifiPhy, wifiMac, SecundariosB); //Device para comunicar a los nodos tipo A y B
+      wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
+      wifi.Install (wifiPhy, wifiMac, Sink);
+      /*Ese ciclo for instala de 0 a n-1 interfaces en los Nodecontainer de Sencundarios A,B,Primarios y el Sink */
+  }
+  //-------------------->>>>>>>>>>>Probar e identificar que interfaces son las del Sink y las de los usuarios primarios
+  /*Termina los canales */                                         
   /*Termina conf. del canal*/
   //Ptr<YansWifiChannel> channel = wifiChannel.Create ();
   /*Se configura la capa fisica del dispositivo*/
-  YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
+  //#########YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
   YansWifiPhyHelper wifiPhySink = YansWifiPhyHelper::Default ();
   YansWifiPhyHelper wifiPhyPrimarios = YansWifiPhyHelper::Default ();
   /*Termina capa fisica*/
@@ -262,7 +297,7 @@ main (int argc, char *argv[])
   /*Se crea el canal y se configura la capa física*/
   // wifiPhy.SetChannel (channel);
   //Ptr<ns3::YansWifiChannel>chann = wifiChannel.Create ();
-  wifiPhy.SetChannel (wifiChannel.Create ());
+  //#################wifiPhy.SetChannel (wifiChannel.Create ());
   //wifiPhy.SetChannel (chann);
 
   //wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (20));
@@ -277,10 +312,9 @@ main (int argc, char *argv[])
   //AsciiTraceHelper ascii;
   //wifiPhy.EnableAsciiAll (ascii.CreateFileStream ("wifi-simple-adhoc-grid.tr"));
   //Aqui se pueden generar los archivos .pcap par wireshark
-  wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
+  /*wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
   wifiPhy.Set ("TxPowerEnd", DoubleValue (40)); //33
-  wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8
-
+  wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8*/
   wifiPhySink.Set ("TxPowerStart", DoubleValue (10)); //5
   wifiPhySink.Set ("TxPowerEnd", DoubleValue (40)); //33
   wifiPhySink.Set ("TxPowerLevels", UintegerValue (16));
@@ -292,14 +326,11 @@ main (int argc, char *argv[])
 
   /*Comienza la configuración de la capa de enlace*/
 
-  WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
+  /*WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
 
-  wifiMac.SetType ("ns3::AdhocWifiMac");
+  wifiMac.SetType ("ns3::AdhocWifiMac");*/
 
-  WifiHelper wifi, wifiSink, wifiPrimarios;
-  wifi.SetStandard (WIFI_STANDARD_80211g);
-  wifiSink.SetStandard (WIFI_STANDARD_80211g);
-  wifiPrimarios.SetStandard (WIFI_STANDARD_80211b);
+  
   /*wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "ControlMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "NonUnicastMode",
@@ -309,27 +340,30 @@ main (int argc, char *argv[])
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "NonUnicastMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"));*/
 
-  //for (uint16_t i = 0; i < N_channels; i++)
-  //{
-
-  /*Revizar por que los devices no se conectan de ofrma correcta con el Sink y por que la potencia del sink no
-  llega a todos lo nodos */
-  wifi.Install (wifiPhy, wifiMac, SecundariosA); //Device para comunicar a los nodos tipo A y B
+  
+  //wifi.Install (wifiPhy, wifiMac, SecundariosA); //Device para comunicar a los nodos tipo A y B
+  /*Se instala la interaz de red con ID n_channels (ej. si n_channels es 8 el ID de esta interfas es 8)*/
   wifiSink.Install (wifiPhySink, wifiMac,
-                    SecundariosA); //Device para comunicar a los nodos tipo A,B y Sink
+                    SecundariosA); //Device n para comunicar a los nodos tipo A,B y Sink
+  /*Interfaz con ID n_channels + 1*/            
   wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
                          SecundariosA); //Device para comunicar a los nodos tipo A,B y PU's
-  wifi.Install (wifiPhy, wifiMac, SecundariosB); //Device para comunicar a los nodos tipo A y B
+  //wifi.Install (wifiPhy, wifiMac, SecundariosB); //Device para comunicar a los nodos tipo A y B
+  
   wifiSink.Install (wifiPhySink, wifiMac,
                     SecundariosB); //Device para comunicar a los nodos tipo A,B y Sink
+  
   wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
                          SecundariosB); //Device para comunicar a los nodos tipo A y B
-  wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
-  wifiSink.Install (wifiPhySink, wifiMac,
-                    Primarios); //Device para comunicar a los nodos tipo A,B y Sink
+  //wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
+  
+  
+  
+  /*wifiSink.Install (wifiPhySink, wifiMac,
+                    Primarios); //Device para comunicar a los nodos tipo A,B y Sink*/
   wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
                          Primarios); //Device para comunicar a los nodos tipo A,B y PU's
-  wifi.Install (wifiPhy, wifiMac, Sink);
+  //wifi.Install (wifiPhy, wifiMac, Sink);
   wifiSink.Install (wifiPhySink, wifiMac, Sink);
 
   //NetDeviceContainer devices_SecA = wifi.Install (wifiPhy, wifiMac, SecundariosA);
@@ -341,7 +375,7 @@ main (int argc, char *argv[])
   //wifiPhy.EnableAscii("Manet-Node-",devices);
   //wifiPhy.EnablePcap("Manet-Node-",devices);
 
-  //AnimationInterface anim ("manetPB.xml");
+  AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
 
@@ -357,9 +391,11 @@ main (int argc, char *argv[])
       //app_i->SetStopTime (Seconds (simTime));
       app_i->setSemilla (Semilla_Sim + i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
+      app_i->m_n_channels=n_channels;
+      app_i->m_RangeOfChannels_Info=List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
-      //anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
-      //app_i->ImprimeTabla ();
+      anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
+      app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
     {
@@ -369,11 +405,12 @@ main (int argc, char *argv[])
       app_i->SetBroadcastInterval (Seconds (rand->GetInteger (1, 10)));
       //app_i->SetBroadcastInterval (Seconds (intervalB));
       app_i->SetStartTime (Seconds (0));
+      app_i->m_n_channels=n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
       //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
-      //anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+      anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
     {
@@ -382,9 +419,10 @@ main (int argc, char *argv[])
       Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
       //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
+      app_i->m_n_channels=n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
-      //anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
@@ -393,9 +431,10 @@ main (int argc, char *argv[])
       Ptr<ApplicationSink> app_i = CreateObject<ApplicationSink> ();
       //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
+      app_i->m_n_channels=n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
-      //anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
     }
 
   /*Termina instalación de la aplicación*/

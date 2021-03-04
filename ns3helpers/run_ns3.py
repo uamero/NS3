@@ -128,16 +128,18 @@ def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
     n_iteracion = 1
     CSVName = "Sim_"
     rwp= "true"
-    seed=random.randint(0,9)
+    #seed=random.randint(0,9)
+
     for x in nA:     
-        Start="true"    
-        for y  in nB:
-            print ("IT Command: "+" |semilla: "+str(Semillas[seed]) + pwd + "/waf --run \"" + default_program + "\"")        
-            argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(x)+" --nB="+str(y)+" --nP="+str(nP)\
-            +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(x)+"_nB_"+str(y)+".csv" +" --Seed="+str(Semillas[seed])\
-            +"--rwp="+rwp     
-            os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
-            #Start="false"
+        for y in nB:
+            Start="true"
+            for seed  in Semillas:
+                print ("IT Command: "+"x:"+str(x)+" y:"+str(y)+" |semilla: "+str(seed) + pwd + "/waf --run \"" + default_program + "\"")        
+                argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(x)+" --nB="+str(y)+" --nP="+str(nP)\
+                +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(x)+"_nB_"+str(y)+".csv" +" --Seed="+str(seed)\
+                +"--rwp="+rwp     
+                os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+                Start="false"
            
 
 def FirstScenario(default_program,pwd):

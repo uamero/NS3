@@ -38,6 +38,7 @@ ApplicationSink::ApplicationSink ()
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
+  m_n_channels=8;
 }
 ApplicationSink::~ApplicationSink ()
 {
@@ -97,10 +98,10 @@ ApplicationSink::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
   
-
+ //std::cout<<"Sink: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
   if (m_Tabla_paquetes_ACK.size () != 0) //hay ACK pendientes
     {
-
+      
       for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
           it != m_Tabla_paquetes_ACK.end (); it++)
         {
@@ -108,7 +109,8 @@ ApplicationSink::BroadcastInformation ()
           
           if (it->NumeroDeEnvios < 3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
-              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(1));
+              
+              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(m_n_channels));
               Ptr<Packet> packet = Create<Packet> (m_packetSize);
               CustomDataTag tag;
               // El timestamp se configura dentro del constructor del tag
@@ -148,6 +150,7 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
     { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK
+    std::cout<<"Recibi paquete " <<std::endl;
       Guarda_Paquete_para_ACK (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                                tag.GetTimestamp (), tag.GetTypeOfPacket ());
       //ImprimeTabla ();

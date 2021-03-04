@@ -67,7 +67,7 @@ public:
   bool BuscaSEQEnTabla(u_long SEQ);
   void Guarda_Paquete_para_ACK(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
   Time timeStamp,int32_t type);
-
+  uint32_t m_n_channels;
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
