@@ -39,11 +39,11 @@ typedef struct
   Time Tiempo_ultima_actualizacion;
   uint32_t ID_Persive;
 }ST_Canales;
-typedef struct
+/*typedef struct
 {
   double Retardo_promedio;
   
-}ST_SatisfacciónL;
+}ST_SatisfacciónL;*/
 class CustomApplication : public ns3::Application
 {
 public:

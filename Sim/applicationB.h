@@ -82,6 +82,7 @@ public:
   std::list<ST_ReenviosB> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
   std::list<ST_ReenviosB> m_Paquetes_Recibidos;/**> Lista de paquetes confirmados de entrega por el sink*/
   std::list<uint32_t> m_RangeOfChannels_Info;
+  double m_Batery;
   void iniciaCanales();
 private:
   /** \brief This is an inherited function. Code that executes once the application starts

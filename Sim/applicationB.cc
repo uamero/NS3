@@ -38,6 +38,7 @@ CustomApplicationBnodes::CustomApplicationBnodes ()
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_n_channels = 8;
+  m_Batery=100.0;
   iniciaCanales();
 }
 CustomApplicationBnodes::~CustomApplicationBnodes ()
@@ -101,8 +102,12 @@ CustomApplicationBnodes::SetWifiMode (WifiMode mode)
 void
 CustomApplicationBnodes::BroadcastInformation ()
 {
+  std::cout<<"APPB en funcionamiento time: "<<m_Canales_Para_Utilizar.size()<<" | Batery: "<<m_Batery<<"% "<<" ID:"<< GetNode()->GetId()<<std::endl;
+  /*if(Now().GetSeconds()>=21)
+    this->SetStopTime(Seconds(.2));*/
   NS_LOG_FUNCTION (this);
   //std::cout<<"Nodos B: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
+  
   if (m_Paquetes_A_Reenviar.size () != 0)
     {
       for (std::list<ST_ReenviosB>::iterator it = m_Paquetes_A_Reenviar.begin ();
@@ -374,6 +379,7 @@ void
 CustomApplicationBnodes::CanalesDisponibles ()
 {
   uint64_t canales = 0;
+  m_Canales_Para_Utilizar.clear();
   for (std::list<ST_CanalesB>::iterator it = m_Canales_disponibles.begin ();
        it != m_Canales_disponibles.end (); it++)
     {

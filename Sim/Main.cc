@@ -10,6 +10,11 @@
 #include "My-tag.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/gnuplot.h"
+#include "ns3/simple-device-energy-model.h"
+#include "ns3/basic-energy-source-helper.h"
+#include "ns3/basic-energy-source.h"
+#include "ns3/energy-source-container.h"
+#include "ns3/wifi-radio-energy-model-helper.h"
 
 #include <iostream>
 #include <fstream>
@@ -22,7 +27,13 @@
 
 using namespace ns3;
 //NS_LOG_COMPONENT_DEFINE ("OwnSimulation");
-
+/*Variables globales*/
+Time m_Simulation_Time;
+NodeContainer SA, SB;
+DeviceEnergyModelContainer deviceModels;
+uint32_t n_Size_Batery=36000; // este valor esta en Joules
+std::list<uint32_t> m_baterias;
+/**********************************************************************************************/
 void
 SomeEvent ()
 {
@@ -35,8 +46,7 @@ SomeEvent ()
     }
   std::cout << "******************" << std::endl;
 }
-Time m_Simulation_Time;
-NodeContainer SA;
+
 void
 MacTxTrace (std::string context, Ptr<const Packet> p)
 {
@@ -73,6 +83,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
                 << std::endl;
     }
 }
+
 /*void CreaGraficoNodoA(Time TS){
   std::string fileNameWithNoExtension = "GraficaN-A-with-error-bars";
   std::string graphicsFileName        = fileNameWithNoExtension + ".png";
@@ -119,7 +130,7 @@ verifica_termino_Simulacion ()
             }
         }
     }
-  if (termina || Now().GetSeconds()>=1000 )
+  if (termina || Now ().GetSeconds () >= 1000)
     {
       m_Simulation_Time = Now ();
       Simulator::Stop ();
@@ -128,6 +139,34 @@ verifica_termino_Simulacion ()
     {
       Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
     }
+}
+void
+Muerte_nodo_B (EnergySourceContainer source)
+{
+  std::list<uint32_t>::iterator it=m_baterias.begin();
+  for (uint32_t i = 0; i < source.GetN (); i++)
+    {
+      Ptr<CustomApplicationBnodes> appI =
+          DynamicCast<CustomApplicationBnodes> (SB.Get (i)->GetApplication (0));
+
+      appI->m_Batery = 100*((source.Get (i)->GetRemainingEnergy()-(*it))/n_Size_Batery);
+      it++;
+    }
+  Simulator::Schedule (Seconds (.5), &Muerte_nodo_B, source);
+}
+void
+RemainingEnergy (double oldValue, double remainingEnergy)
+{
+  NS_LOG_UNCOND (Simulator::Now ().GetSeconds ()
+                 << "s Current remaining energy = " << remainingEnergy << "J");
+}
+
+/// Trace function for total energy consumption at node.
+void
+TotalEnergy (double oldValue, double totalEnergy)
+{
+  NS_LOG_UNCOND (Simulator::Now ().GetSeconds ()
+                 << "s Total energy consumed by radio = " << totalEnergy << "J");
 }
 int
 main (int argc, char *argv[])
@@ -140,11 +179,13 @@ main (int argc, char *argv[])
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
-
-  uint32_t n_channels=8; // Numero de canales, por default 8
+  
+  uint32_t n_channels = 8; // Numero de canales, por default 8
   uint32_t Semilla_Sim = 2;
   bool RWP = true;
-  bool homogeneo=true;
+  bool homogeneo = true;
+  //const double R = 0.046; //J, Energy consumption on reception
+  //const double T = 0.067; //J, Energy consumption on sending
   double simTime = 1000; //Tiempo de simulación
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
@@ -258,34 +299,40 @@ main (int argc, char *argv[])
   WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
   wifiMac.SetType ("ns3::AdhocWifiMac");
   WifiHelper wifi, wifiSink, wifiPrimarios;
-  wifi.SetStandard (WIFI_STANDARD_80211g);
-  wifiSink.SetStandard (WIFI_STANDARD_80211g);
-  wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
+  wifi.SetStandard (WIFI_STANDARD_80211b);
+  wifiSink.SetStandard (WIFI_STANDARD_80211b);
+  wifiPrimarios.SetStandard (WIFI_STANDARD_80211b);
   std::list<uint32_t> List_RangeOfChannels;
+
   /*#####Implementación de los canales en los nodos tipo A y tipo B*/
-  for (uint32_t i=0;i<n_channels;i++){
+  for (uint32_t i = 0; i < n_channels; i++)
+    {
       YansWifiChannelHelper wifiChannel;
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       uint32_t distance;
-      if(homogeneo)
-        distance=5;   
+      if (homogeneo)
+        distance = 5;
       else
-       distance=rand->GetInteger (2, 15);
-      List_RangeOfChannels.push_back(distance); 
-      wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (distance));
+        distance = rand->GetInteger (2, 15);
+      List_RangeOfChannels.push_back (distance);
+      wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
+                                      DoubleValue (distance));
       YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (wifiChannel.Create ());
       wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
       wifiPhy.Set ("TxPowerEnd", DoubleValue (40)); //33
       wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8
-      wifi.Install (wifiPhy, wifiMac, SecundariosA); //Device para comunicar a los nodos tipo A y B
-      wifi.Install (wifiPhy, wifiMac, SecundariosB); //Device para comunicar a los nodos tipo A y B
+      wifi.Install (wifiPhy, wifiMac,
+                    SecundariosA); //Device para comunicar a los nodos tipo A y B
+      wifi.Install (wifiPhy, wifiMac,
+                    SecundariosB); //Device para comunicar a los nodos tipo A y B
       wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
       wifi.Install (wifiPhy, wifiMac, Sink);
       /*Ese ciclo for instala de 0 a n-1 interfaces en los Nodecontainer de Sencundarios A,B,Primarios y el Sink */
-  }
+    }
+
   //-------------------->>>>>>>>>>>Probar e identificar que interfaces son las del Sink y las de los usuarios primarios
-  /*Termina los canales */                                         
+  /*Termina los canales */
   /*Termina conf. del canal*/
   //Ptr<YansWifiChannel> channel = wifiChannel.Create ();
   /*Se configura la capa fisica del dispositivo*/
@@ -330,7 +377,6 @@ main (int argc, char *argv[])
 
   wifiMac.SetType ("ns3::AdhocWifiMac");*/
 
-  
   /*wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "ControlMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "NonUnicastMode",
@@ -340,25 +386,24 @@ main (int argc, char *argv[])
                                 StringValue ("OfdmRate6MbpsBW10MHz"), "NonUnicastMode",
                                 StringValue ("OfdmRate6MbpsBW10MHz"));*/
 
-  
   //wifi.Install (wifiPhy, wifiMac, SecundariosA); //Device para comunicar a los nodos tipo A y B
   /*Se instala la interaz de red con ID n_channels (ej. si n_channels es 8 el ID de esta interfas es 8)*/
   wifiSink.Install (wifiPhySink, wifiMac,
                     SecundariosA); //Device n para comunicar a los nodos tipo A,B y Sink
-  /*Interfaz con ID n_channels + 1*/            
+  /*Interfaz con ID n_channels + 1*/
+
   wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
                          SecundariosA); //Device para comunicar a los nodos tipo A,B y PU's
   //wifi.Install (wifiPhy, wifiMac, SecundariosB); //Device para comunicar a los nodos tipo A y B
-  
+
   wifiSink.Install (wifiPhySink, wifiMac,
                     SecundariosB); //Device para comunicar a los nodos tipo A,B y Sink
-  
-  wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
-                         SecundariosB); //Device para comunicar a los nodos tipo A y B
+
+  NetDeviceContainer devicesB =
+      wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
+                             SecundariosB); //Device para comunicar a los nodos tipo A y B
   //wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
-  
-  
-  
+
   /*wifiSink.Install (wifiPhySink, wifiMac,
                     Primarios); //Device para comunicar a los nodos tipo A,B y Sink*/
   wifiPrimarios.Install (wifiPhyPrimarios, wifiMac,
@@ -374,6 +419,51 @@ main (int argc, char *argv[])
 
   //wifiPhy.EnableAscii("Manet-Node-",devices);
   //wifiPhy.EnablePcap("Manet-Node-",devices);
+  /*Instalación de la bateria***********************************************************************************/
+
+  /* energy source */
+  BasicEnergySourceHelper basicSourceHelper;
+  // configure energy source
+  /*Para una bateria de 2000mAh a 5V la equivalencia en Joules es 36000*/
+  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (n_Size_Batery));
+  basicSourceHelper.Set ("PeriodicEnergyUpdateInterval", TimeValue (Seconds (0.2)));
+
+  // install source
+  EnergySourceContainer sources = basicSourceHelper.Install (SecundariosB);
+
+  /* device energy model */
+  WifiRadioEnergyModelHelper radioEnergyHelper;
+
+  // configure radio energy model
+  radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.0174));
+  radioEnergyHelper.Set ("RxCurrentA", DoubleValue (0.0174));
+  deviceModels = radioEnergyHelper.Install (devicesB, sources);
+  //radioEnergyHelper.Set ("TxCurrentA", DoubleValue (T));
+  /* radioEnergyHelper.Set ("RxCurrentA", DoubleValue (R));
+  radioEnergyHelper.Set ("IdleCurrentA", DoubleValue (0.01));
+  radioEnergyHelper.Set ("CcaBusyCurrentA", DoubleValue (0.01));
+  radioEnergyHelper.Set ("SwitchingCurrentA", DoubleValue (0.01));
+  radioEnergyHelper.Set ("SleepCurrentA", DoubleValue (0.001));*/
+  /*Termina instalación de la bateria***************************************************************/
+  /** connect trace sources **/
+  /***************************************************************************/
+  // all sources are connected to node 1
+  // energy source
+  for (uint32_t i; i < sources.GetN (); i++)
+    {
+      m_baterias.push_back(rand->GetInteger(uint32_t(n_Size_Batery*.10),uint32_t (n_Size_Batery*.90)));
+      /*Ptr<BasicEnergySource> basicSourcePtr = DynamicCast<BasicEnergySource> (sources.Get (i));
+      basicSourcePtr->TraceConnectWithoutContext ("RemainingEnergy",
+                                                  MakeCallback (&RemainingEnergy));
+      // device energy model
+      Ptr<DeviceEnergyModel> basicRadioModelPtr =
+          basicSourcePtr->FindDeviceEnergyModels ("ns3::WifiRadioEnergyModel").Get (0);
+      NS_ASSERT (basicRadioModelPtr != NULL);
+      basicRadioModelPtr->TraceConnectWithoutContext ("TotalEnergyConsumption",
+                                                      MakeCallback (&TotalEnergy));*/
+    }
+
+  /***************************************************************************/
 
   AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
@@ -384,6 +474,7 @@ main (int argc, char *argv[])
     {
       //std::ostringstream oss;
       // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;
+
       Ptr<CustomApplication> app_i = CreateObject<CustomApplication> ();
       app_i->SetBroadcastInterval (Seconds (intervalA));
       app_i->SetStartTime (Seconds (0));
@@ -391,8 +482,8 @@ main (int argc, char *argv[])
       //app_i->SetStopTime (Seconds (simTime));
       app_i->setSemilla (Semilla_Sim + i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
-      app_i->m_n_channels=n_channels;
-      app_i->m_RangeOfChannels_Info=List_RangeOfChannels;
+      app_i->m_n_channels = n_channels;
+      app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
       app_i->ImprimeTabla ();
@@ -405,7 +496,7 @@ main (int argc, char *argv[])
       app_i->SetBroadcastInterval (Seconds (rand->GetInteger (1, 10)));
       //app_i->SetBroadcastInterval (Seconds (intervalB));
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels=n_channels;
+      app_i->m_n_channels = n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
@@ -419,7 +510,7 @@ main (int argc, char *argv[])
       Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
       //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels=n_channels;
+      app_i->m_n_channels = n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
@@ -431,7 +522,7 @@ main (int argc, char *argv[])
       Ptr<ApplicationSink> app_i = CreateObject<ApplicationSink> ();
       //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels=n_channels;
+      app_i->m_n_channels = n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
@@ -449,8 +540,11 @@ main (int argc, char *argv[])
 
   // Config::Set("/NodeList/"+ std::to_string(Sink.Get(0)->GetId())+"/DeviceList/*/$ns3::WifiNetDevice/Channel/$ns3::YansWifiChannel/PropagationLossModel/$ns3::RangePropagationLossModel/MaxRange", DoubleValue(new_range) );
   //Simulator::Stop (Seconds (simTime));
-  SA = SecundariosA;
+  SA = SecundariosA; /*Sirve para establecer el final de la simulación*/
+  SB = SecundariosB; /*Sirve para establecer el final de la simulación*/
+
   Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
+  Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
   Simulator::Run (); //Termina simulación
 
   /*###################################################################################*/
@@ -458,6 +552,15 @@ main (int argc, char *argv[])
   /*Termina lasimulacion */
   /*###################################################################################*/
   /*###################################################################################*/
+  for (DeviceEnergyModelContainer::Iterator iter = deviceModels.Begin ();
+       iter != deviceModels.End (); iter++)
+    {
+      double energyConsumed = (*iter)->GetTotalEnergyConsumption ();
+      NS_LOG_UNCOND ("End of simulation ("
+                     << Simulator::Now ().GetSeconds ()
+                     << "s) Total energy consumed by radio = " << energyConsumed << "J");
+      // NS_ASSERT (energyConsumed <= 1.0);
+    }
   //std::cout << "Post Simulation: " << std::endl;
   FILE *datos;
   if (StartSimulation)
@@ -469,9 +572,8 @@ main (int argc, char *argv[])
           " | Secundarios B: " + std::to_string (n_SecundariosB) + "| Primarios " +
           std::to_string (n_Primarios) + "\n";
       fprintf (datos, info.c_str ());*/
-      fprintf (datos,
-               "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
-               "enviado,Tamaño en bytes,Semilla,TTS,No. Paquetes a enviar,TA \n");
+      fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
+                      "enviado,Tamaño en bytes,Semilla,TTS,No. Paquetes a enviar,TA \n");
     }
   else
     {
@@ -492,8 +594,7 @@ main (int argc, char *argv[])
                  "," + std::to_string (it->Estado) + "," +
                  std::to_string (it->Tiempo_de_recibo_envio.GetSeconds ()) + "," +
                  std::to_string (it->numeroSEQ) + "," + std::to_string (it->NumeroDeEnvios) + "," +
-                 std::to_string (it->Tam_Paquete)  + "," +
-                 std::to_string (Semilla_Sim) + "," +
+                 std::to_string (it->Tam_Paquete) + "," + std::to_string (Semilla_Sim) + "," +
                  std::to_string (m_Simulation_Time.GetSeconds ()) + "," +
                  std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "\n";
           if (it->Estado)
@@ -521,7 +622,7 @@ main (int argc, char *argv[])
   //Termina la simulación
   Simulator::Destroy ();
   std::string comando = "chmod 777 /home/manuel/Escritorio/Datos_Sim/" + CSVFile;
-  system(comando.c_str());
+  system (comando.c_str ());
   //system ("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &");
   return 0;
 }

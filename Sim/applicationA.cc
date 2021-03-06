@@ -4,6 +4,7 @@
 #include "applicationA.h"
 #include "My-tag.h"
 
+
 #include <bitset>
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
@@ -61,7 +62,7 @@ CustomApplication::StartApplication ()
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
           dev->SetReceiveCallback (MakeCallback (&CustomApplication::ReceivePacket, this));
-
+          
           /*
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
