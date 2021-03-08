@@ -31,8 +31,10 @@ using namespace ns3;
 Time m_Simulation_Time;
 NodeContainer SA, SB;
 DeviceEnergyModelContainer deviceModels;
-uint32_t n_Size_Batery=36000; // este valor esta en Joules
+uint32_t n_Size_Batery = 36000; // este valor esta en Joules
+uint32_t n_nodos_muertos = 0;
 std::list<uint32_t> m_baterias;
+uint32_t n_channels;
 /**********************************************************************************************/
 void
 SomeEvent ()
@@ -130,7 +132,7 @@ verifica_termino_Simulacion ()
             }
         }
     }
-  if (termina || Now ().GetSeconds () >= 1000)
+  if (termina)
     {
       m_Simulation_Time = Now ();
       Simulator::Stop ();
@@ -143,14 +145,18 @@ verifica_termino_Simulacion ()
 void
 Muerte_nodo_B (EnergySourceContainer source)
 {
-  std::list<uint32_t>::iterator it=m_baterias.begin();
+  std::list<uint32_t>::iterator it = m_baterias.begin ();
   for (uint32_t i = 0; i < source.GetN (); i++)
     {
       Ptr<CustomApplicationBnodes> appI =
           DynamicCast<CustomApplicationBnodes> (SB.Get (i)->GetApplication (0));
-
-      appI->m_Batery = 100*((source.Get (i)->GetRemainingEnergy()-(*it))/n_Size_Batery);
+      double Pbatery = 100 * ((source.Get (i)->GetRemainingEnergy () - (*it)) / n_Size_Batery);
+      appI->m_Batery = Pbatery;
       it++;
+      if (Pbatery < 1)
+        {
+          n_nodos_muertos++;
+        }
     }
   Simulator::Schedule (Seconds (.5), &Muerte_nodo_B, source);
 }
@@ -179,11 +185,11 @@ main (int argc, char *argv[])
   uint32_t n_SecundariosB = 15; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
-  
-  uint32_t n_channels = 8; // Numero de canales, por default 8
+  Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
+  n_channels = 1; // Numero de canales, por default 8
   uint32_t Semilla_Sim = 2;
   bool RWP = true;
-  bool homogeneo = true;
+  bool homogeneo = false;
   //const double R = 0.046; //J, Energy consumption on reception
   //const double T = 0.067; //J, Energy consumption on sending
   double simTime = 1000; //Tiempo de simulación
@@ -193,6 +199,7 @@ main (int argc, char *argv[])
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
       1; //numero de paquetes a ser creados por cada uno de los nodos generadores
+  uint32_t TP=5;
   std::string CSVFile = "default.csv";
   bool StartSimulation = true;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
@@ -205,15 +212,17 @@ main (int argc, char *argv[])
   cmd.AddValue ("nP", "Numero de nodos Primarios", n_Primarios);
   cmd.AddValue ("rwp", "Modelo de movilidad random Way point", RWP);
   cmd.AddValue ("hg", "Activa la parte heterogenea de la red, por default es homogeneo", homogeneo);
+  cmd.AddValue ("tp", "Tiempo de actualizacion de los canales de los primarios", TP);
+  cmd.AddValue ("nch", "Numero de canales a instalar", n_channels);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
-
+  
   cmd.Parse (argc, argv);
 
   SeedManager::SetSeed (Semilla_Sim);
-  Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
+  
   // Gnuplot gnuplot = Gnuplot ("reference-rates.png");
   NodeContainer SecundariosA;
   NodeContainer SecundariosB;
@@ -288,9 +297,9 @@ main (int argc, char *argv[])
   //wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue(30));
   YansWifiChannelHelper wifiChannelSink; // =  YansWifiChannelHelper::Default ();
   wifiChannelSink.SetPropagationDelay ("ns3::RandomPropagationDelayModel");
-  wifiChannelSink.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
-  //wifiChannelSink.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue(100));
-
+  //wifiChannelSink.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
+  wifiChannelSink.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue(100));
+  
   YansWifiChannelHelper wifiChannelPrimarios;
   wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
   //wifiChannelPrimarios.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
@@ -451,7 +460,8 @@ main (int argc, char *argv[])
   // energy source
   for (uint32_t i; i < sources.GetN (); i++)
     {
-      m_baterias.push_back(rand->GetInteger(uint32_t(n_Size_Batery*.10),uint32_t (n_Size_Batery*.90)));
+      m_baterias.push_back (
+          rand->GetInteger (uint32_t (n_Size_Batery * .10), uint32_t (n_Size_Batery * .90)));
       /*Ptr<BasicEnergySource> basicSourcePtr = DynamicCast<BasicEnergySource> (sources.Get (i));
       basicSourcePtr->TraceConnectWithoutContext ("RemainingEnergy",
                                                   MakeCallback (&RemainingEnergy));
@@ -465,7 +475,7 @@ main (int argc, char *argv[])
 
   /***************************************************************************/
 
-  AnimationInterface anim ("manetPB.xml");
+  //AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
 
@@ -485,8 +495,8 @@ main (int argc, char *argv[])
       app_i->m_n_channels = n_channels;
       app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
-      app_i->ImprimeTabla ();
+    //  anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
+      //app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
     {
@@ -501,8 +511,9 @@ main (int argc, char *argv[])
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
       //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
-      anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+     // anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
+  
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
     {
       //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
@@ -511,9 +522,10 @@ main (int argc, char *argv[])
       //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
+      app_i->SetBroadcastInterval(Seconds(TP));
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+     // anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
@@ -525,7 +537,7 @@ main (int argc, char *argv[])
       app_i->m_n_channels = n_channels;
       //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      //anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
     }
 
   /*Termina instalación de la aplicación*/
@@ -552,7 +564,7 @@ main (int argc, char *argv[])
   /*Termina lasimulacion */
   /*###################################################################################*/
   /*###################################################################################*/
-  for (DeviceEnergyModelContainer::Iterator iter = deviceModels.Begin ();
+  /* for (DeviceEnergyModelContainer::Iterator iter = deviceModels.Begin ();
        iter != deviceModels.End (); iter++)
     {
       double energyConsumed = (*iter)->GetTotalEnergyConsumption ();
@@ -560,7 +572,7 @@ main (int argc, char *argv[])
                      << Simulator::Now ().GetSeconds ()
                      << "s) Total energy consumed by radio = " << energyConsumed << "J");
       // NS_ASSERT (energyConsumed <= 1.0);
-    }
+    }*/
   //std::cout << "Post Simulation: " << std::endl;
   FILE *datos;
   if (StartSimulation)
@@ -573,7 +585,8 @@ main (int argc, char *argv[])
           std::to_string (n_Primarios) + "\n";
       fprintf (datos, info.c_str ());*/
       fprintf (datos, "Nodo,No. Paquete,Estatus del paquete,Tiempo de entrega,No. SEQ, No. Veces "
-                      "enviado,Tamaño en bytes,Semilla,TTS,No. Paquetes a enviar,TA \n");
+                      "enviado,Tamaño en bytes,Semilla,TTS,No. Paquetes a enviar,TA,No. nodos "
+                      "muertos,No. canales \n");
     }
   else
     {
@@ -596,7 +609,8 @@ main (int argc, char *argv[])
                  std::to_string (it->numeroSEQ) + "," + std::to_string (it->NumeroDeEnvios) + "," +
                  std::to_string (it->Tam_Paquete) + "," + std::to_string (Semilla_Sim) + "," +
                  std::to_string (m_Simulation_Time.GetSeconds ()) + "," +
-                 std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "\n";
+                 std::to_string (n_Packets_A_Enviar) + "," + std::to_string (intervalA) + "," +
+                 std::to_string (n_nodos_muertos) + "," + std::to_string (n_channels) + "\n";
           if (it->Estado)
             {
               fprintf (datos, data.c_str ());

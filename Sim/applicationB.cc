@@ -102,7 +102,7 @@ CustomApplicationBnodes::SetWifiMode (WifiMode mode)
 void
 CustomApplicationBnodes::BroadcastInformation ()
 {
-  std::cout<<"APPB en funcionamiento time: "<<m_Canales_Para_Utilizar.size()<<" | Batery: "<<m_Batery<<"% "<<" ID:"<< GetNode()->GetId()<<std::endl;
+  //std::cout<<"APPB en funcionamiento time: "<<m_Canales_Para_Utilizar.size()<<" | Batery: "<<m_Batery<<"% "<<" ID:"<< GetNode()->GetId()<<std::endl;
   /*if(Now().GetSeconds()>=21)
     this->SetStopTime(Seconds(.2));*/
   NS_LOG_FUNCTION (this);
@@ -383,12 +383,11 @@ CustomApplicationBnodes::CanalesDisponibles ()
   for (std::list<ST_CanalesB>::iterator it = m_Canales_disponibles.begin ();
        it != m_Canales_disponibles.end (); it++)
     {
-      canales = it->m_chanels | canales;
+      canales = it->m_chanels | canales; 
     }
   std::bitset<64> x (canales);
   std::string cadena = x.to_string ();
   std::string disp = std::string (cadena.rbegin (), cadena.rend ());
-
   for (uint8_t i = 0; i < m_n_channels; i++)
     {
       if (disp[i] == '0')
@@ -449,6 +448,7 @@ CustomApplicationBnodes::BuscaCanalesID (uint8_t ch, uint32_t ID, Time tim)
       Nch.ID_Persive = ID;
       Nch.m_chanels = ch;
       Nch.Tiempo_ultima_actualizacion = Now ();
+      m_Canales_disponibles.push_back(Nch);
     }
   return find;
 }

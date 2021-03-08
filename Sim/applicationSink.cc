@@ -120,6 +120,7 @@ ApplicationSink::BroadcastInformation ()
               it->NumeroDeEnvios += 1;
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+              //Simulator::Stop();
               break;
             }
         }
@@ -150,9 +151,10 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
     { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK
-    std::cout<<"Recibi paquete " <<std::endl;
+   std::cout<<"Recibi paquete " <<std::endl;
       Guarda_Paquete_para_ACK (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
                                tag.GetTimestamp (), tag.GetTypeOfPacket ());
+
       //ImprimeTabla ();
     }
   return true;

@@ -113,33 +113,59 @@ def CalculaSemilla(default_program,pwd):
         +" --StartSim="+Start+" --nit="+str(n_iteracion)+" --CSVFile="+CSVName +" --Seed="+str(seed)
         os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
         Start="false"
-
+def Calcula_Punto_DeRuptura(default_program,pwd):
+    TA=1
+    nPTS=1
+    Semillas = np.random.randint(1,2**32-1,(500,));#Arreglo de 10 semillas
+    nA=1
+    nP=random.randint(1,10)
+    homo="false"
+    CSVName = "Sim_"
+    rwp="true"
+    nB=[100,500,1000]
+    i=0
+    tp=random.randint(1,20)
+    for NB in nB:
+        Start="true"
+        for x in Semillas:
+            print ("IT Command "+str(i)+": "+"nB="+str(NB)+" |semilla: "+str(x) + pwd + "/waf --run \"" + default_program + "\"")
+            argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(NB)+" --nP="+str(1)\
+            +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(1)+"_nB_"+str(NB)+".csv" +" --Seed="+str(x)\
+            +" --rwp="+rwp+" --hg="+homo+ " --tp="+str(tp)     
+            os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+            Start="false"
+            i+=1        
+                
 def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
     #datos=pd.read_csv("CalculoSemilla.csv",sep=",",header=0)
     #Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
 
     #Generar las graficas incrementando los nodos A y B con una misma denciada de nodos P 
-    Semillas = np.random.randint(1,2**32-1,(10,));#Arreglo de 10 semillas
+    Semillas = np.random.randint(1,2**32-1,(100,));#Arreglo de 10 semillas
     TA = 1 #Se generan paquetes cada 1s
-    nA=[1,5,15,30]
+    nA=1
     nPTS=1
-    nB=[15,60,120,250]
+    nB=[2500]
     nP=1
     n_iteracion = 1
     CSVName = "Sim_"
     rwp= "true"
+    homo="false"
+    tp=random.randint(1,20)
+    nch=random.randint(2,10)
     #seed=random.randint(0,9)
 
-    for x in nA:     
-        for y in nB:
-            Start="true"
-            for seed  in Semillas:
-                print ("IT Command: "+"x:"+str(x)+" y:"+str(y)+" |semilla: "+str(seed) + pwd + "/waf --run \"" + default_program + "\"")        
-                argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(x)+" --nB="+str(y)+" --nP="+str(nP)\
-                +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(x)+"_nB_"+str(y)+".csv" +" --Seed="+str(seed)\
-                +"--rwp="+rwp     
-                os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
-                Start="false"
+    i=0  
+    for y in nB:
+        Start="true"
+        for seed  in Semillas:
+            print ("IT Command: "+"i:"+str(i)+" y:"+str(y)+" |semilla: "+str(seed) + pwd + "/waf --run \"" + default_program + "\"")        
+            argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(y)+" --nP="+str(nP)\
+            +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(nA)+"_nB_"+str(y)+".csv" +" --Seed="+str(seed)\
+            +"--rwp="+rwp+" --hg="+homo+ " --tp="+str(tp) + " --nch="+str(nch)     
+            os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
+            Start="false"
+            i+=1
            
 
 def FirstScenario(default_program,pwd):
@@ -212,6 +238,7 @@ def main(argv):
         #os.environ['NS3_PROGRAM'] = default_program"""
         #FirstScenario(default_program,pwd)
         Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd)
+        #Calcula_Punto_DeRuptura(default_program,pwd)
         #CalculaSemilla(default_program,pwd)
     else:
         #Program have more than zero arguments, so we go through them in a loop, and use build a command string.
