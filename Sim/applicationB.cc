@@ -39,7 +39,7 @@ CustomApplicationBnodes::CustomApplicationBnodes ()
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_n_channels = 8;
   m_Batery=100.0;
-  iniciaCanales();
+  //iniciaCanales();
 }
 CustomApplicationBnodes::~CustomApplicationBnodes ()
 {
@@ -69,7 +69,7 @@ CustomApplicationBnodes::StartApplication ()
     }
   if (m_wifiDevice)
     {
-
+    
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
@@ -107,7 +107,7 @@ CustomApplicationBnodes::BroadcastInformation ()
     this->SetStopTime(Seconds(.2));*/
   NS_LOG_FUNCTION (this);
   //std::cout<<"Nodos B: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
-  
+   
   if (m_Paquetes_A_Reenviar.size () != 0)
     {
       for (std::list<ST_ReenviosB>::iterator it = m_Paquetes_A_Reenviar.begin ();
@@ -120,7 +120,7 @@ CustomApplicationBnodes::BroadcastInformation ()
                 {
                   Ptr<Packet> packet = Create<Packet> (it->Tam_Paquete);
                   CustomDataTag tag;
-                  // El timestamp se configrua dentro del constructor del tag
+                  // El timestamp se configura dentro del constructor del tag
                   tag.SetNodeId (it->ID_Creador);
                   tag.CopySEQNumber (it->numeroSEQ);
                   //std::cout << "SEQQQ en BBBBB"<<it->numeroSEQ <<std::endl;
@@ -165,7 +165,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
  // std::cout << "SEQ en B" <<tag.GetSEQNumber() << std::endl; 
  //std::cout << "pAQUETE RECIBIDO en BBBBB   SEQ: "  << tag.GetSEQNumber()<<" | "<<device->GetIfIndex () <<std::endl;
   
-
+  
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) &&
       (tag.GetTypeOfPacket () == 0 || tag.GetTypeOfPacket () == 1) &&
       device->GetIfIndex () != m_n_channels && VerificaCanal (ch) &&

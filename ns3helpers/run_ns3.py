@@ -141,18 +141,19 @@ def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
     #Semillas=datos["Semilla"][0:100]# Este archivo contiene 270 semillas de las cuales solo tomamos 100
 
     #Generar las graficas incrementando los nodos A y B con una misma denciada de nodos P 
-    Semillas = np.random.randint(1,2**32-1,(100,));#Arreglo de 10 semillas
+    Semillas = np.random.randint(1,2**32-1,(500,));#Arreglo de n semillas
     TA = 1 #Se generan paquetes cada 1s
     nA=1
     nPTS=1
-    nB=[2500]
+    nB=[55]
     nP=1
     n_iteracion = 1
-    CSVName = "Sim_"
-    rwp= "true"
-    homo="false"
-    tp=random.randint(1,20)
-    nch=random.randint(2,10)
+    CSVName = "Sim_38m_"
+    #rwp= "true"
+    homo="true"
+    #tp=random.randint(1,20)
+    tp=10
+    nch=1
     #seed=random.randint(0,9)
 
     i=0  
@@ -162,7 +163,7 @@ def Tiempo_Generacion_VS_Tiempo_RX(default_program,pwd):
             print ("IT Command: "+"i:"+str(i)+" y:"+str(y)+" |semilla: "+str(seed) + pwd + "/waf --run \"" + default_program + "\"")        
             argumentos= " --iA="+str(TA) +" --nPTS="+str(nPTS)+" --nA="+str(nA)+" --nB="+str(y)+" --nP="+str(nP)\
             +" --StartSim="+Start+" --CSVFile="+CSVName+"nA_"+str(nA)+"_nB_"+str(y)+".csv" +" --Seed="+str(seed)\
-            +"--rwp="+rwp+" --hg="+homo+ " --tp="+str(tp) + " --nch="+str(nch)     
+            +" --hg="+homo+ " --tp="+str(tp) + " --nch="+str(nch)     
             os.system(pwd + "/waf --run \"" + default_program+argumentos+"\""+"\n")
             Start="false"
             i+=1

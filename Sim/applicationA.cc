@@ -35,14 +35,14 @@ CustomApplication::GetInstanceTypeId () const
 
 CustomApplication::CustomApplication ()
 {
-  m_broadcast_time = Seconds (1); //every 100ms
+  m_broadcast_time = Seconds (10); //every 100ms
   m_packetSize = 1000; //1000 bytes
   m_Tiempo_de_reenvio = Seconds (1); //Tiempo para reenviar los paquetes
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
   m_n_channels = 8;
-  iniciaCanales();
+  //iniciaCanales();
 }
 CustomApplication::~CustomApplication ()
 {
@@ -117,6 +117,7 @@ CustomApplication::BroadcastInformation ()
   //std::cout<<"ID Device "<<m_wifiDevice->GetIfIndex ()<< " n: "<<GetNode()->GetNDevices()<<std::endl;
   //if (m_wifiDevice->GetIfIndex () != 0)
   //{
+  
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
@@ -143,8 +144,11 @@ CustomApplication::BroadcastInformation ()
                   packet->AddPacketTag (tag);
                   //std::cout << "SEQQQ en AAAAA"<<tag.GetSEQNumber() <<std::endl;
                   //std::cout<<"channel ->>>>>>>>>>>>>> "<<*_it <<std::endl;
+                  //std::cout<<" Me quedo aqui #############################%"<<std::to_string(GetNode()->GetNDevices())<<" El canal es: "<<std::to_string(*_it)<<std::endl;//aqui esta el problema investigar el porque y arreglarlo
                   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
+                  //std::cout<<" Me quedo aqui #############################/"<<" El canal es: "<<std::to_string(*_it)<<std::endl;
                   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+
                 }
             }
           else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
@@ -192,7 +196,7 @@ CustomApplication::BroadcastInformation ()
         }
     }
   //}
-
+  
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
@@ -225,6 +229,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
   packet->PeekPacketTag (tag);
   // std::cout<<"No se Confirmooooo entrega ################### device ID: "<<device->GetIfIndex()<<
   //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
+  
   uint64_t ch = tag.GetChanels ();
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex () != m_n_channels &&
       device->GetIfIndex () != m_n_channels + 1 && VerificaCanal (ch))
@@ -244,6 +249,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
       CanalesDisponibles();
     }
+   
   return true;
 }
 
@@ -476,6 +482,7 @@ CustomApplication::CanalesDisponibles ()
     {
       if (disp[i] == '0')
         {
+          
           m_Canales_Para_Utilizar.push_back (i);
         }
     }

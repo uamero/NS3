@@ -47,6 +47,7 @@ void
 CustomApplicationPnodes::StartApplication ()
 {
   NS_LOG_FUNCTION (this);
+  
   //Set A Receive callback
   Ptr<Node> n = GetNode ();
   for (uint32_t i = 0; i < n->GetNDevices (); i++)
@@ -101,7 +102,6 @@ CustomApplicationPnodes::BroadcastInformation ()
   NS_LOG_FUNCTION (this);
   //std::cout<<"Primarios: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
-
   Ptr<Packet> packet = Create<Packet> (m_PacketSize);
   CustomDataTag tag;
   // El timestamp se configrua dentro del constructor del tag
