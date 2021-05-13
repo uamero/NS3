@@ -35,7 +35,7 @@ CustomApplication::GetInstanceTypeId () const
 
 CustomApplication::CustomApplication ()
 {
-  m_broadcast_time = Seconds (10); //every 100ms
+  m_broadcast_time = Seconds (1); //every 1s
   m_packetSize = 1000; //1000 bytes
   m_Tiempo_de_reenvio = Seconds (1); //Tiempo para reenviar los paquetes
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
@@ -223,7 +223,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
     */
-
+  
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);

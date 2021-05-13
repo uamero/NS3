@@ -15,11 +15,20 @@
 #include "ns3/basic-energy-source.h"
 #include "ns3/energy-source-container.h"
 #include "ns3/wifi-radio-energy-model-helper.h"
+#include "ns3/buildings-helper.h"
+#include "ns3/buildings-module.h"
+#include "ns3/building-position-allocator.h"
+#include "ns3/mobility-building-info.h"
+#include "ns3/building.h"
+#include "ns3/flow-monitor-helper.h"
+#include "ns3/flow-monitor-module.h"
+#include "ns3/flow-monitor.h"
 
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
 #include <cstdlib>
+#include <map>
 #define YELLOW_CODE "\033[33m"
 #define TEAL_CODE "\033[36m"
 #define BOLD_CODE "\033[1m"
@@ -48,7 +57,21 @@ SomeEvent ()
     }
   std::cout << "******************" << std::endl;
 }
+void
+showPosition (NodeContainer nodes, double deltaTime)
+{
+  for (uint32_t i = 0; i < nodes.GetN (); i++)
+    {
 
+      uint32_t nodeId = nodes.Get (i)->GetId ();
+      Ptr<MobilityModel> mobModel = nodes.Get (i)->GetObject<MobilityModel> ();
+      Vector3D pos = mobModel->GetPosition ();
+      Vector3D speed = mobModel->GetVelocity ();
+      std::cout << "At " << Simulator::Now ().GetSeconds () << " node " << nodeId << ": Position("
+                << pos.x << ", " << pos.y << ", " << pos.z << ");   Speed(" << speed.x << ", "
+                << speed.y << ", " << speed.z << ")" << std::endl;
+    }
+}
 void
 MacTxTrace (std::string context, Ptr<const Packet> p)
 {
@@ -73,16 +96,30 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
   //context will include info about the source of this event. Use string manipulation if you want to extract info.
   std::cout << BOLD_CODE << context << END_CODE << std::endl;
   //Print the info.
+
   std::cout << "\tSize=" << packet->GetSize () << " Freq=" << channelFreqMhz
             << " Mode=" << txVector.GetMode () << " Signal=" << signalNoise.signal
             << " Noise=" << signalNoise.noise << std::endl;
 
   //We can also examine the WifiMacHeader
   WifiMacHeader hdr;
+
   if (packet->PeekHeader (hdr))
     {
       std::cout << "\tDestination MAC : " << hdr.GetAddr1 () << "\tSource MAC : " << hdr.GetAddr2 ()
                 << std::endl;
+
+      for (NodeContainer::Iterator nodoIT = SB.Begin(); nodoIT != SB.End (); nodoIT++)
+        {
+          Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
+          std::cout << "EL pisodel nodo "<<std::to_string((*nodoIT)->GetId()) <<" es: " << std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetRoomNumberY ())<< std::endl;
+        }
+        for (NodeContainer::Iterator nodoIT = SA.Begin(); nodoIT != SA.End (); nodoIT++)
+        {
+          Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
+  
+          std::cout << "EL pisodel nodo "<<std::to_string((*nodoIT)->GetId()) <<" es: " << std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetRoomNumberX ())<< std::endl;
+        }
     }
 }
 
@@ -121,7 +158,7 @@ verifica_termino_Simulacion ()
   for (uint32_t i = 0; i < SA.GetN (); i++)
     {
       Ptr<CustomApplication> appI = DynamicCast<CustomApplication> (SA.Get (i)->GetApplication (0));
-      
+
       for (std::list<ST_Paquete_A_Enviar>::iterator it = appI->m_Tabla_paquetes_A_enviar.begin ();
            it != appI->m_Tabla_paquetes_A_enviar.end (); it++)
         {
@@ -132,7 +169,7 @@ verifica_termino_Simulacion ()
             }
         }
     }
-  if (termina )
+  if (termina)
     {
       m_Simulation_Time = Now ();
       Simulator::Stop ();
@@ -141,7 +178,6 @@ verifica_termino_Simulacion ()
     {
       Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
     }
-    
 }
 void
 Muerte_nodo_B (EnergySourceContainer source)
@@ -175,6 +211,7 @@ TotalEnergy (double oldValue, double totalEnergy)
   NS_LOG_UNCOND (Simulator::Now ().GetSeconds ()
                  << "s Total energy consumed by radio = " << totalEnergy << "J");
 }
+
 int
 main (int argc, char *argv[])
 {
@@ -183,12 +220,14 @@ main (int argc, char *argv[])
   CommandLine cmd;
   uint32_t n_iteracion = 0;
   uint32_t n_SecundariosA = 1; //Numero de nodos en la red
-  uint32_t n_SecundariosB = (int) (1414 / 38) + 1; //Numero de nodos en la red
+  uint32_t n_SecundariosB = 5; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   n_channels = 1; // Numero de canales, por default 8
-  uint32_t Semilla_Sim = 2;
+  uint32_t Semilla_Sim = 3;
+  uint32_t escenario = 1; //escenario por deffault
+
   bool RWP = true;
   bool homogeneo = true;
   //const double R = 0.046; //J, Energy consumption on reception
@@ -196,7 +235,7 @@ main (int argc, char *argv[])
   double simTime = 1000; //Tiempo de simulación
   // double interval = (rand->GetValue (0, 100)) / 100; //intervalo de broadcast
   //double interval = (rand()%100)/100.0; //intervalo de broadcast
-  double intervalA = 10; //intervalo de broadcast
+  double intervalA = 1; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
       1; //numero de paquetes a ser creados por cada uno de los nodos generadores
@@ -222,7 +261,7 @@ main (int argc, char *argv[])
                 CSVFile);
 
   cmd.Parse (argc, argv);
-
+  /*
   std::string cmdSC =
       "cd /home/manuel/Escritorio/bonnmotion-3.0.1/bin/ && ./bm -f desastre RPGM -d 5000 -i 0 -n " +
       std::to_string (n_SecundariosB) + " -x 510 -y 510 -a 1 -p 20";
@@ -240,15 +279,68 @@ main (int argc, char *argv[])
   //std::string traceFile = "/home/manuel/Documentos/bake/source/ns-3.32/scratch/emer2.ns_movements";
   std::string traceFile =
       "/home/manuel/Documentos/bake/source/ns-3.32/scratch/Sim/desastre.ns_movements";
-  /*Se crea el escenario con elmodelo de movilidad RPGM paralos nodos tipo B*/
+*/
   SeedManager::SetSeed (Semilla_Sim);
+
   NodeContainer SecundariosB;
   SecundariosB.Create (n_SecundariosB);
 
-  Ns2MobilityHelper ns2 = Ns2MobilityHelper (traceFile);
-  ns2.Install ();
-  NodeContainer SecundariosA;
+  Ptr<Building> b;
+  MobilityHelper mobility_nB;
 
+  double x_min = 10.0;
+  double x_max = 160.0;
+  double y_min = 10.0;
+  double y_max = 40.0;
+  double z_min = 0.0;
+  double z_max = 50.0;
+  switch (escenario)
+    {
+    case 1:
+
+      b = CreateObject<Building> ();
+      b->SetBoundaries (Box (x_min, x_max, y_min, y_max, z_min, z_max));
+      b->SetBuildingType (Building::Residential);
+      //b->SetBuildingType (Building::Office);
+      //b->SetBuildingType (Building::Commercial);
+      b->SetExtWallsType (Building::ConcreteWithWindows);
+      b->SetNFloors (4);
+      b->SetNRoomsX (10);
+      b->SetNRoomsY (3);
+
+      mobility_nB.SetMobilityModel ("ns3::RandomWalk2dMobilityModel", "Mode", StringValue ("Time"),
+                                    "Time", StringValue ("1s"), "Speed",
+                                    StringValue ("ns3::ConstantRandomVariable[Constant=5.0]"),
+                                    "Bounds", StringValue ("10|160|10|40"));
+
+      mobility_nB.SetPositionAllocator ("ns3::RandomBuildingPositionAllocator");
+      mobility_nB.Install (SecundariosB);
+
+      BuildingsHelper::Install (SecundariosB);
+      BuildingsHelper::MakeMobilityModelConsistent ();
+      /* for (NodeContainer::Iterator it = SecundariosB.Begin (); it != SecundariosB.End (); it++)
+        {
+          //Ptr<MobilityModel> mm = (*it)->GetObject<MobilityModel> ();
+          //Ptr<MobilityBuildingInfo> bmm = mm->GetObject<MobilityBuildingInfo> ();
+          Ptr<HybridBuildingsPropagationLossModel> LossModel  = (*it)->GetObject<HybridBuildingsPropagationLossModel>();
+          std::cout<<"El modelo de perdidas por propagación es: "<<(*it)->GetObject<HybridBuildingsPropagationLossModel>()<<std::endl;
+           //Vector p = mm->GetPosition ();
+           //Para revisar los parametros visitar: //https://www.nsnam.org/doxygen/group__propagation.html#ga29c9a1b1a58b6a56054ff5ea4c5a574d
+          LossModel->SetCitySize(SmallCity);
+          LossModel->SetEnvironment(UrbanEnvironment);
+        }*/
+      break;
+      /*
+    default:
+      /*Se crea el escenario con elmodelo de movilidad RPGM paralos nodos tipo B
+      Ns2MobilityHelper ns2 = Ns2MobilityHelper (traceFile);
+      ns2.Install ();
+      break;*/
+    }
+
+  /*Termina configuración del primeres cenario */
+
+  NodeContainer SecundariosA;
   NodeContainer Primarios;
   NodeContainer Sink;
 
@@ -258,19 +350,40 @@ main (int argc, char *argv[])
   Sink.Create (n_Sink);
 
   /*Se configura el modelo de movilidad*/
+  mobility_nB.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility_nB.SetPositionAllocator ("ns3::RandomBuildingPositionAllocator");
+
+  mobility_nB.Install (SecundariosA);
+
+  BuildingsHelper::Install (SecundariosA);
+  BuildingsHelper::MakeMobilityModelConsistent ();
+
+  mobility_nB.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+  mobility_nB.Install (Primarios);
+  for (uint32_t i = 0; i < Primarios.GetN (); i++)
+    {
+      Ptr<ConstantPositionMobilityModel> PUs_Pos = DynamicCast<ConstantPositionMobilityModel> (
+          Primarios.Get (i)->GetObject<MobilityModel> ());
+      PUs_Pos->SetPosition (Vector (0.1, 50, 0.1));
+    }
+  BuildingsHelper::Install (Primarios);
+  BuildingsHelper::MakeMobilityModelConsistent ();
+  /* 
   MobilityHelper mobilit;
   mobilit.SetPositionAllocator ("ns3::RandomBoxPositionAllocator", "X",
                                 StringValue ("ns3::UniformRandomVariable[Min=0|Max=500]"), "Y",
                                 StringValue ("ns3::UniformRandomVariable[Min=0|Max=500]"), "Z",
                                 StringValue ("ns3::UniformRandomVariable[Min=0|Max=0]"));
   mobilit.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobilit.Install (SecundariosA);
+  //mobilit.Install (SecundariosA);
   mobilit.Install (Primarios);
+  
   MobilityHelper mobility;
 
   /* mobility.SetPositionAllocator ("ns3::RandomDiscPositionAllocator", "X", StringValue ("50.0"),
                                  "Y", StringValue ("50.0"), "Rho",
-                                 StringValue ("ns3::UniformRandomVariable[Min=0|Max=50]"));*/
+                                 StringValue ("ns3::UniformRandomVariable[Min=0|Max=50]"));
   if (RWP)
     {
       mobilit.SetMobilityModel ("ns3::RandomWalk2dMobilityModel", "Mode", StringValue ("Time"),
@@ -285,11 +398,7 @@ main (int argc, char *argv[])
                                 StringValue ("ns3::ConstantRandomVariable[Constant=5]"), "Pause",
                                 StringValue ("ns3::ConstantRandomVariable[Constant=0.2]"));
     }
-
-  //mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  //mobility.Install (SecundariosA);
-  //mobility.Install (SecundariosB);
-  //mobilit.Install (SecundariosA);
+   */
   //############mobilit.Install (SecundariosB);
   //mobility.Install (Primarios);
   MobilityHelper mobilitySink;
@@ -300,35 +409,26 @@ main (int argc, char *argv[])
   //Ptr<ListPositionAllocator> positionAlloc_Sink = CreateObject<ListPositionAllocator> ();
   Ptr<ConstantPositionMobilityModel> Sink_Pos =
       DynamicCast<ConstantPositionMobilityModel> (Sink.Get (0)->GetObject<MobilityModel> ());
-  Sink_Pos->SetPosition (Vector (250, 250, 0));
-  /*Ptr<ConstantPositionMobilityModel> Prim_Pos =
-      DynamicCast<ConstantPositionMobilityModel> (Primarios.Get (0)->GetObject<MobilityModel> ());
-  Prim_Pos->SetPosition (Vector (15, 24, 0));*/
-  //mobilitySink.Install (Sink);
+  //Sink_Pos->SetPosition (Vector (250, 250, 0));
+  Sink_Pos->SetPosition (Vector (0.5, 0.5, 0.5));
+  BuildingsHelper::Install (Sink);
+  BuildingsHelper::MakeMobilityModelConsistent ();
   /*Termina la configuración de la movilidad*/
 
   /*Configuración del canal(canales)*/
-  //#########YansWifiChannelHelper wifiChannel; //= YansWifiChannelHelper::Default ();
-  //wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  //wifiChannel.SetPropagationDelay ("ns3::RandomPropagationDelayModel");
-  //wifiChannel.AddPropagationLoss("ns3::ThreeLogDistancePropagationLossModel");
-  //wifiChannel.AddPropagationLoss ("ns3::NakagamiPropagationLossModel");
-  //#########wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  //#########wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (5));
-  //wifiChannel.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
 
-  //wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel","MaxRange",DoubleValue(30));
-  YansWifiChannelHelper wifiChannelSink; // =  YansWifiChannelHelper::Default ();
-  wifiChannelSink.SetPropagationDelay ("ns3::RandomPropagationDelayModel");
-  //wifiChannelSink.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
+  YansWifiChannelHelper wifiChannelSink;
+
+  wifiChannelSink.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+
   wifiChannelSink.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
                                       DoubleValue (500));
 
   YansWifiChannelHelper wifiChannelPrimarios;
   wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  //wifiChannelPrimarios.AddPropagationLoss ("ns3::LogDistancePropagationLossModel");
+
   wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                           DoubleValue (300));
+                                           DoubleValue (500));
   WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
   wifiMac.SetType ("ns3::AdhocWifiMac");
   WifiHelper wifi, wifiSink, wifiPrimarios;
@@ -348,13 +448,17 @@ main (int argc, char *argv[])
       else
         distance = rand->GetInteger (38, 140);
       List_RangeOfChannels.push_back (distance);
-      wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                      DoubleValue (distance));
+      ns3::RangePropagationLossModel v;
+      /* wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
+                                      DoubleValue (distance));*/
+
+      wifiChannel.AddPropagationLoss ("ns3::HybridBuildingsPropagationLossModel");
+
       YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (wifiChannel.Create ());
-      wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
-      wifiPhy.Set ("TxPowerEnd", DoubleValue (40)); //33
-      wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8
+      wifiPhy.Set ("TxPowerStart", DoubleValue (5)); //5
+      wifiPhy.Set ("TxPowerEnd", DoubleValue (33)); //33
+      wifiPhy.Set ("TxPowerLevels", UintegerValue (8)); //8
       wifi.Install (wifiPhy, wifiMac,
                     SecundariosA); //Device para comunicar a los nodos tipo A y B
       wifi.Install (wifiPhy, wifiMac,
@@ -499,7 +603,10 @@ main (int argc, char *argv[])
     }
 
   /***************************************************************************/
+  //FlowMonitorHelper flujo;
 
+  //flujo.Install (SecundariosB);
+  //Ptr<FlowMonitor> flow_nodes = flujo.InstallAll ();
   AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
@@ -518,7 +625,7 @@ main (int argc, char *argv[])
       app_i->setSemilla (Semilla_Sim + i);
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       app_i->m_n_channels = n_channels;
-      app_i->iniciaCanales();
+      app_i->iniciaCanales ();
       app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
@@ -533,12 +640,12 @@ main (int argc, char *argv[])
       //app_i->SetBroadcastInterval (Seconds (intervalB));
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
-      app_i->iniciaCanales();
+      app_i->iniciaCanales ();
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
       //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
-       anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+      anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
     }
 
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
@@ -552,7 +659,7 @@ main (int argc, char *argv[])
       app_i->SetBroadcastInterval (Seconds (TP));
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
-       anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+      anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
@@ -569,10 +676,10 @@ main (int argc, char *argv[])
 
   /*Termina instalación de la aplicación*/
 
-  //std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
-  //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
-  //                MakeCallback (&Rx));
-  //Config::Connect (path, MakeCallback (&PhyRxDropTrace));
+  std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
+  Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
+                   MakeCallback (&Rx));
+  Config::Connect (path, MakeCallback (&PhyRxDropTrace));
 
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx", MakeCallback (&MacTxTrace));
   //double new_range = 10;
@@ -581,11 +688,17 @@ main (int argc, char *argv[])
   //Simulator::Stop (Seconds (simTime));
   SA = SecundariosA; /*Sirve para establecer el final de la simulación*/
   SB = SecundariosB; /*Sirve para establecer el final de la simulación*/
-  
+
+  /*flow_nodes->SetAttribute ("DelayBinWidth", DoubleValue (0.01));
+  flow_nodes->SetAttribute ("JitterBinWidth", DoubleValue (0.01));
+  flow_nodes->SetAttribute ("PacketSizeBinWidth", DoubleValue (1));*/
+
   Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
 
   Simulator::Run (); //Termina simulación
+
+  //flow_nodes->SerializeToXmlFile ("estadistics.xml", true, true);
 
   /*###################################################################################*/
   /*###################################################################################*/
@@ -603,7 +716,6 @@ main (int argc, char *argv[])
     }*/
   //std::cout << "Post Simulation: " << std::endl;
 
-  
   FILE *datos;
   if (StartSimulation)
     {
