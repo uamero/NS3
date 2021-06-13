@@ -85,9 +85,11 @@ PhyRxDropTrace (std::string context, Ptr<const Packet> packet,
 {
   //What to do when packet loss happened.
   //Suggestion: Maybe check some packet tags you attached to the packet
+
   CustomDataTag tag;
   packet->PeekPacketTag (tag);
   std::cout << context << " " << reason << " " << tag.GetSEQNumber () << std::endl;
+ 
 }
 void
 Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, WifiTxVector txVector,
@@ -96,7 +98,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
   //context will include info about the source of this event. Use string manipulation if you want to extract info.
   std::cout << BOLD_CODE << context << END_CODE << std::endl;
   //Print the info.
-
+  
   std::cout << "\tSize=" << packet->GetSize () << " Freq=" << channelFreqMhz
             << " Mode=" << txVector.GetMode () << " Signal=" << signalNoise.signal
             << " Noise=" << signalNoise.noise << std::endl;
@@ -109,18 +111,24 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
       std::cout << "\tDestination MAC : " << hdr.GetAddr1 () << "\tSource MAC : " << hdr.GetAddr2 ()
                 << std::endl;
 
-      for (NodeContainer::Iterator nodoIT = SB.Begin(); nodoIT != SB.End (); nodoIT++)
+      for (NodeContainer::Iterator nodoIT = SB.Begin (); nodoIT != SB.End (); nodoIT++)
         {
           Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
-          std::cout << "EL pisodel nodo "<<std::to_string((*nodoIT)->GetId()) <<" es: " << std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetRoomNumberY ())<< std::endl;
+          std::cout << "EL pisodel nodo " << std::to_string ((*nodoIT)->GetId ())
+                    << " es: " << std::to_string (MB->GetFloorNumber ())
+                    << std::to_string (MB->GetFloorNumber ())
+                    << std::to_string (MB->GetRoomNumberY ()) << std::endl;
         }
-        for (NodeContainer::Iterator nodoIT = SA.Begin(); nodoIT != SA.End (); nodoIT++)
+      for (NodeContainer::Iterator nodoIT = SA.Begin (); nodoIT != SA.End (); nodoIT++)
         {
           Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
-  
-          std::cout << "EL pisodel nodo "<<std::to_string((*nodoIT)->GetId()) <<" es: " << std::to_string (MB->GetFloorNumber ()) <<std::to_string (MB->GetRoomNumberX ())<< std::endl;
+
+          std::cout << "EL pisodel nodo " << std::to_string ((*nodoIT)->GetId ())
+                    << " es: " << std::to_string (MB->GetFloorNumber ())
+                    << std::to_string (MB->GetRoomNumberX ()) << std::endl;
         }
     }
+    std::cout << " Termina RX ()1///////////////////" << std::endl;
 }
 
 /*void CreaGraficoNodoA(Time TS){
@@ -154,7 +162,7 @@ void
 verifica_termino_Simulacion ()
 {
   bool termina = true;
-
+  
   for (uint32_t i = 0; i < SA.GetN (); i++)
     {
       Ptr<CustomApplication> appI = DynamicCast<CustomApplication> (SA.Get (i)->GetApplication (0));
@@ -211,7 +219,21 @@ TotalEnergy (double oldValue, double totalEnergy)
   NS_LOG_UNCOND (Simulator::Now ().GetSeconds ()
                  << "s Total energy consumed by radio = " << totalEnergy << "J");
 }
+void
+PrintGnuplottableBuildingListToFile (std::string filename)
+{
+  std::ofstream outFile;
+  outFile.open (filename.c_str (), std::ios_base::out | std::ios_base::trunc);
 
+  uint32_t index = 0;
+  for (BuildingList::Iterator it = BuildingList::Begin (); it != BuildingList::End (); ++it)
+    {
+      ++index;
+      Box box = (*it)->GetBoundaries ();
+      outFile << "set object " << index << " rect from " << box.xMin << "," << box.yMin << " to "
+              << box.xMax << "," << box.yMax << std::endl;
+    }
+}
 int
 main (int argc, char *argv[])
 {
@@ -220,11 +242,11 @@ main (int argc, char *argv[])
   CommandLine cmd;
   uint32_t n_iteracion = 0;
   uint32_t n_SecundariosA = 1; //Numero de nodos en la red
-  uint32_t n_SecundariosB = 5; //Numero de nodos en la red
+  uint32_t n_SecundariosB = 20; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-  n_channels = 1; // Numero de canales, por default 8
+  n_channels = 5; // Numero de canales, por default 8
   uint32_t Semilla_Sim = 3;
   uint32_t escenario = 1; //escenario por deffault
 
@@ -294,6 +316,7 @@ main (int argc, char *argv[])
   double y_max = 40.0;
   double z_min = 0.0;
   double z_max = 50.0;
+
   switch (escenario)
     {
     case 1:
@@ -317,7 +340,14 @@ main (int argc, char *argv[])
       mobility_nB.Install (SecundariosB);
 
       BuildingsHelper::Install (SecundariosB);
-      BuildingsHelper::MakeMobilityModelConsistent ();
+      for (NodeContainer::Iterator nodoIT = SecundariosB.Begin (); nodoIT != SecundariosB.End ();
+           nodoIT++)
+        {
+          Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
+          Ptr<MobilityModel> mm = (*nodoIT)->GetObject<MobilityModel> ();
+          MB->MakeConsistent (mm);
+        }
+      //BuildingsHelper::MakeMobilityModelConsistent ();
       /* for (NodeContainer::Iterator it = SecundariosB.Begin (); it != SecundariosB.End (); it++)
         {
           //Ptr<MobilityModel> mm = (*it)->GetObject<MobilityModel> ();
@@ -330,15 +360,64 @@ main (int argc, char *argv[])
           LossModel->SetEnvironment(UrbanEnvironment);
         }*/
       break;
-      /*
-    default:
+    case 2:
+      // create a grid of buildings
+      double buildingSizeX = 100; // m
+      double buildingSizeY = 50; // m
+      double streetWidth = 25; // m
+      double buildingHeight = 10; // m
+      uint32_t numBuildingsX = 10;
+      uint32_t numBuildingsY = 10;
+      double maxAxisX = (buildingSizeX + streetWidth) * numBuildingsX;
+      double maxAxisY = (buildingSizeY + streetWidth) * numBuildingsY;
+      std::vector<Ptr<Building>> buildingVector;
+
+      for (uint32_t buildingIdX = 0; buildingIdX < numBuildingsX; ++buildingIdX)
+        {
+          for (uint32_t buildingIdY = 0; buildingIdY < numBuildingsY; ++buildingIdY)
+            {
+              Ptr<Building> building;
+              building = CreateObject<Building> ();
+
+              building->SetBoundaries (
+                  Box (buildingIdX * (buildingSizeX + streetWidth),
+                       buildingIdX * (buildingSizeX + streetWidth) + buildingSizeX,
+                       buildingIdY * (buildingSizeY + streetWidth),
+                       buildingIdY * (buildingSizeY + streetWidth) + buildingSizeY, 0.0,
+                       buildingHeight));
+              building->SetNRoomsX (1);
+              building->SetNRoomsY (1);
+              building->SetNFloors (1);
+              buildingVector.push_back (building);
+            }
+        }
+      PrintGnuplottableBuildingListToFile ("buildings.txt");
+      mobility_nB.SetMobilityModel (
+          "ns3::RandomWalk2dOutdoorMobilityModel", "Bounds",
+          RectangleValue (Rectangle (-streetWidth, maxAxisX, -streetWidth, maxAxisY)));
+      // create an OutdoorPositionAllocator and set its boundaries to match those of the mobility model
+      Ptr<OutdoorPositionAllocator> position = CreateObject<OutdoorPositionAllocator> ();
+      Ptr<UniformRandomVariable> xPos = CreateObject<UniformRandomVariable> ();
+      xPos->SetAttribute ("Min", DoubleValue (-streetWidth));
+      xPos->SetAttribute ("Max", DoubleValue (maxAxisX));
+      Ptr<UniformRandomVariable> yPos = CreateObject<UniformRandomVariable> ();
+      yPos->SetAttribute ("Min", DoubleValue (-streetWidth));
+      yPos->SetAttribute ("Max", DoubleValue (maxAxisY));
+      position->SetAttribute ("X", PointerValue (xPos));
+      position->SetAttribute ("Y", PointerValue (yPos));
+      mobility_nB.SetPositionAllocator (position);
+      // install the mobility model
+      mobility_nB.Install (SecundariosB);
+      BuildingsHelper::Install (SecundariosB);
+      break;
+      //default:
       /*Se crea el escenario con elmodelo de movilidad RPGM paralos nodos tipo B
       Ns2MobilityHelper ns2 = Ns2MobilityHelper (traceFile);
       ns2.Install ();
       break;*/
     }
 
-  /*Termina configuración del primeres cenario */
+  /*Termina configuración del primer escenario */
 
   NodeContainer SecundariosA;
   NodeContainer Primarios;
@@ -356,7 +435,14 @@ main (int argc, char *argv[])
   mobility_nB.Install (SecundariosA);
 
   BuildingsHelper::Install (SecundariosA);
-  BuildingsHelper::MakeMobilityModelConsistent ();
+  for (NodeContainer::Iterator nodoIT = SecundariosA.Begin (); nodoIT != SecundariosA.End ();
+       nodoIT++)
+    {
+      Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
+      Ptr<MobilityModel> mm = (*nodoIT)->GetObject<MobilityModel> ();
+      MB->MakeConsistent (mm);
+    }
+  //BuildingsHelper::MakeMobilityModelConsistent ();
 
   mobility_nB.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
@@ -368,7 +454,13 @@ main (int argc, char *argv[])
       PUs_Pos->SetPosition (Vector (0.1, 50, 0.1));
     }
   BuildingsHelper::Install (Primarios);
-  BuildingsHelper::MakeMobilityModelConsistent ();
+  for (NodeContainer::Iterator nodoIT = Primarios.Begin (); nodoIT != Primarios.End (); nodoIT++)
+    {
+      Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
+      Ptr<MobilityModel> mm = (*nodoIT)->GetObject<MobilityModel> ();
+      MB->MakeConsistent (mm);
+    }
+  //BuildingsHelper::MakeMobilityModelConsistent ();
   /* 
   MobilityHelper mobilit;
   mobilit.SetPositionAllocator ("ns3::RandomBoxPositionAllocator", "X",
@@ -380,7 +472,7 @@ main (int argc, char *argv[])
   mobilit.Install (Primarios);
   
   MobilityHelper mobility;
-
+  */
   /* mobility.SetPositionAllocator ("ns3::RandomDiscPositionAllocator", "X", StringValue ("50.0"),
                                  "Y", StringValue ("50.0"), "Rho",
                                  StringValue ("ns3::UniformRandomVariable[Min=0|Max=50]"));
@@ -412,7 +504,7 @@ main (int argc, char *argv[])
   //Sink_Pos->SetPosition (Vector (250, 250, 0));
   Sink_Pos->SetPosition (Vector (0.5, 0.5, 0.5));
   BuildingsHelper::Install (Sink);
-  BuildingsHelper::MakeMobilityModelConsistent ();
+  //BuildingsHelper::MakeMobilityModelConsistent ();
   /*Termina la configuración de la movilidad*/
 
   /*Configuración del canal(canales)*/
@@ -422,13 +514,13 @@ main (int argc, char *argv[])
   wifiChannelSink.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
 
   wifiChannelSink.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                      DoubleValue (500));
+                                      DoubleValue (5000));
 
   YansWifiChannelHelper wifiChannelPrimarios;
   wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
 
   wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                           DoubleValue (500));
+                                           DoubleValue (5000));
   WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
   wifiMac.SetType ("ns3::AdhocWifiMac");
   WifiHelper wifi, wifiSink, wifiPrimarios;
@@ -448,11 +540,16 @@ main (int argc, char *argv[])
       else
         distance = rand->GetInteger (38, 140);
       List_RangeOfChannels.push_back (distance);
-      ns3::RangePropagationLossModel v;
+
       /* wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
                                       DoubleValue (distance));*/
 
-      wifiChannel.AddPropagationLoss ("ns3::HybridBuildingsPropagationLossModel");
+      //wifiChannel.AddPropagationLoss ("ns3::HybridBuildingsPropagationLossModel");
+      /*El modelo ohBuildings convina dos modelos para mas informacion observar https://www.nsnam.org/docs/release/3.32/doxygen/classns3_1_1_oh_buildings_propagation_loss_model.html#details
+      https://www.nsnam.org/docs/release/3.32/doxygen/oh-buildings-propagation-loss-model_8h.html
+      */
+      wifiChannel.AddPropagationLoss ("ns3::OhBuildingsPropagationLossModel");
+      //wifiChannel.AddPropagationLoss ("ns3::BuildingsPropagationLossModel");
 
       YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (wifiChannel.Create ());
@@ -626,6 +723,7 @@ main (int argc, char *argv[])
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
+      app_i->CreaBuffersCanales();
       app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
@@ -677,9 +775,9 @@ main (int argc, char *argv[])
   /*Termina instalación de la aplicación*/
 
   std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
-  Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
-                   MakeCallback (&Rx));
-  Config::Connect (path, MakeCallback (&PhyRxDropTrace));
+  //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
+  //                 MakeCallback (&Rx));
+  //Config::Connect (path, MakeCallback (&PhyRxDropTrace));
 
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx", MakeCallback (&MacTxTrace));
   //double new_range = 10;
@@ -692,10 +790,12 @@ main (int argc, char *argv[])
   /*flow_nodes->SetAttribute ("DelayBinWidth", DoubleValue (0.01));
   flow_nodes->SetAttribute ("JitterBinWidth", DoubleValue (0.01));
   flow_nodes->SetAttribute ("PacketSizeBinWidth", DoubleValue (1));*/
+  AsciiTraceHelper ascii;
+  MobilityHelper::EnableAsciiAll (ascii.CreateFileStream ("mobility-trace-example.mob"));
 
   Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
-
+ 
   Simulator::Run (); //Termina simulación
 
   //flow_nodes->SerializeToXmlFile ("estadistics.xml", true, true);
@@ -755,7 +855,7 @@ main (int argc, char *argv[])
                  std::to_string (n_nodos_muertos) + "," + std::to_string (n_channels) + "\n";
           if (it->Estado)
             {
-              fprintf (datos, data.c_str ());
+              fprintf (datos, "%s", data.c_str ());
             }
 
           cont++;

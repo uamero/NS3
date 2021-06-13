@@ -30,11 +30,13 @@ public:
   u_long GetSEQNumber ();
   u_int32_t GetTypeOfPacket ();
   uint64_t GetChanels();
+  uint32_t GetCopyNumber();
   //void SetPosition (Vector pos);
   void SetNodeId (uint32_t node_id); /*> Id del nodo que envia*/
   void SetTimestamp (Time t);
   void CopySEQNumber (u_long number);
   void SetTypeOfpacket (int32_t TType);
+  void SetCopyNumber (uint32_t CopyNum);
   void SetChanels(uint64_t chanels);
   CustomDataTag ();
   virtual ~CustomDataTag ();
@@ -44,7 +46,9 @@ private:
   Time m_timestamp; /**> Tiempo en el que el paquete se creó*/
   u_long m_SEQNumber; /**> Numero de secuencia que identifica al paquete*/
   uint32_t m_TypeOfPacket; /**> 0 Paquete nuevo, 1 reenvio de paquete, 2 respuesta del Sink*/
+  uint32_t m_CopyNumber; /**> Esta variable almacena el numero de la copia generada de un paquete*/
   uint64_t m_chanels;
+  
 };
 } // namespace ns3
 

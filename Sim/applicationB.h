@@ -22,6 +22,7 @@ typedef struct
   uint32_t Tam_Paquete;
   Time Tiempo_ultimo_envio;
   int32_t tipo_de_paquete;
+  std::string Ruta;
   bool Estado;
 } ST_ReenviosB;
 typedef struct 
@@ -72,7 +73,7 @@ public:
   //You can create more functions like getters, setters, and others
   bool BuscaSEQEnTabla(u_long SEQ);
   void Guarda_Paquete_reenvio(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
-  Time timeStamp,int32_t type);
+  Time timeStamp,int32_t type,std::string Ruta);
   std::list<ST_ReenviosB>::iterator GetReenvio();
   void CanalesDisponibles();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */

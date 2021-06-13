@@ -4,7 +4,6 @@
 #include "applicationA.h"
 #include "My-tag.h"
 
-
 #include <bitset>
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
@@ -62,7 +61,7 @@ CustomApplication::StartApplication ()
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
           dev->SetReceiveCallback (MakeCallback (&CustomApplication::ReceivePacket, this));
-          
+
           /*
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
@@ -77,7 +76,6 @@ CustomApplication::StartApplication ()
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
       Simulator::Schedule (m_broadcast_time + random_offset,
                            &CustomApplication::BroadcastInformation, this);
-      
     }
   else
     {
@@ -117,7 +115,7 @@ CustomApplication::BroadcastInformation ()
   //std::cout<<"ID Device "<<m_wifiDevice->GetIfIndex ()<< " n: "<<GetNode()->GetNDevices()<<std::endl;
   //if (m_wifiDevice->GetIfIndex () != 0)
   //{
-  
+
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
@@ -134,32 +132,41 @@ CustomApplication::BroadcastInformation ()
               for (std::list<uint32_t>::iterator _it = m_Canales_Para_Utilizar.begin ();
                    _it != m_Canales_Para_Utilizar.end (); _it++)
                 {
-                  Ptr<Packet> packet = Create<Packet> (m_packetSize);
+                  std::string ruta = std::to_string (GetNode ()->GetId ());
+                  /*Ptr<Packet> packet =
+                      Create<Packet> ((uint8_t *) msgx.str ().c_str (), packetSize);*/
+                  //std::cout << "Packet 1 enviado:" << ruta <<  std::endl;
+                  Ptr<Packet> packet = Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
+                  //Ptr<Packet> packet = Create<Packet> (m_packetSize);
+
                   CustomDataTag tag;
                   // El timestamp se configura dentro del constructor del tag
                   tag.SetTypeOfpacket (0);
                   tag.SetNodeId (GetNode ()->GetId ());
                   tag.CopySEQNumber (it->numeroSEQ);
                   tag.SetChanels (*_it);
+
                   packet->AddPacketTag (tag);
+
                   //std::cout << "SEQQQ en AAAAA"<<tag.GetSEQNumber() <<std::endl;
                   //std::cout<<"channel ->>>>>>>>>>>>>> "<<*_it <<std::endl;
                   //std::cout<<" Me quedo aqui #############################%"<<std::to_string(GetNode()->GetNDevices())<<" El canal es: "<<std::to_string(*_it)<<std::endl;//aqui esta el problema investigar el porque y arreglarlo
                   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
                   //std::cout<<" Me quedo aqui #############################/"<<" El canal es: "<<std::to_string(*_it)<<std::endl;
                   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-
                 }
             }
-          else if (Ultimo_Envio >= m_Tiempo_de_reenvio)
+          else if (Ultimo_Envio >= m_Tiempo_de_reenvio) //
             {
-
+              std::string ruta = std::to_string (GetNode ()->GetId ());
               it->NumeroDeEnvios += 1;
 
               for (std::list<uint32_t>::iterator _it = m_Canales_Para_Utilizar.begin ();
                    _it != m_Canales_Para_Utilizar.end (); _it++)
                 {
-                  Ptr<Packet> packet = Create<Packet> (m_packetSize);
+                  std::string ruta = std::to_string (GetNode ()->GetId ());
+                  Ptr<Packet> packet = Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
+                  //Ptr<Packet> packet = Create<Packet> (m_packetSize);
                   CustomDataTag tag;
                   tag.SetTypeOfpacket (1);
                   tag.SetNodeId (GetNode ()->GetId ());
@@ -181,13 +188,19 @@ CustomApplication::BroadcastInformation ()
           for (std::list<uint32_t>::iterator __it = m_Canales_Para_Utilizar.begin ();
                __it != m_Canales_Para_Utilizar.end (); __it++)
             {
-              Ptr<Packet> packet = Create<Packet> (_it->Tam_Paquete);
+              //Aqui el proceso es distinto ya que el paquete a reenviar puede venir de un id  distinto por lo tanto en la tabla de paquetes a reenviar hay que
+              //colocar una variable que alamcene el String que viene el paquete y asi poderlo obtener en el reenvio
+
+              std::string ruta = _it->ruta + "," + std::to_string (GetNode ()->GetId ());
+              Ptr<Packet> packet = Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
+              //Ptr<Packet> packet = Create<Packet> (_it->Tam_Paquete);
               CustomDataTag tag;
               tag.SetNodeId (_it->ID_Creador);
               tag.CopySEQNumber (_it->numeroSEQ);
               tag.SetTimestamp (_it->Tiempo_ultimo_envio);
               tag.SetTypeOfpacket (_it->tipo_de_paquete);
               tag.SetChanels (*__it);
+              /*Ajustar al Id que traiga el paquete, meterlo en _it */
               packet->AddPacketTag (tag);
               //std::cout<<"channel ->>>>>>>>>>>>>> "<<*__it <<std::endl;
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*__it));
@@ -196,12 +209,13 @@ CustomApplication::BroadcastInformation ()
         }
     }
   //}
-  
+
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &CustomApplication::BroadcastInformation, this);
   //std::cout<<Now().GetSeconds()<<std::endl;
   m_simulation_time = Now ();
+
   /*if (VerificaFinDeSimulacion () || Now () >= Seconds(1000))
     {
       //std::cout<<"Tiempo de simulacion: "<< Now().GetSeconds() <<"Seg."<<std::endl;
@@ -218,28 +232,53 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
    * 1.- Un paquete que fue enviado por este nodo 
    * 2.- Un paquete que fue enviado por el Sink*/
   CustomDataTag tag;
+  uint32_t NIC=0;
+  
+  for (std::list<std::list<Ptr<Packet>>>::iterator it =m_BuffersA.begin();it!=m_BuffersA.end();it++ )
+  {
+    if(NIC == device->GetIfIndex()){
+        (*it).push_back(packet->Copy());
+        break;
+    }
+    NIC++;
+  }
+  
+  //m_BufferA.push_back (packet->Copy());
+
+/*  std::cout << "Se han copiado: " << m_BufferA.size () << " paquetes en el buffer" << std::endl;
+
+  for (std::list<Ptr<Packet>>::iterator it = m_BufferA.begin (); it != m_BufferA.end (); it++)
+    {
+      uint8_t *buff = new uint8_t[(*it)->GetSize()];
+      (*it)->CopyData (buff, packet->GetSize ());
+      std::string sms = std::string (buff, buff + (*it)->GetSize());
+      std::cout << "El paquete tiene: " << sms << " y hay "<<(*it)->GetSize()<<"paquetes en el buffer" << std::endl;
+    }
+  */
   NS_LOG_FUNCTION (device << packet << protocol << sender);
   /*
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
     */
-  
+
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
   // std::cout<<"No se Confirmooooo entrega ################### device ID: "<<device->GetIfIndex()<<
   //"  NodoID: "<<tag.GetNodeId()<< " type: "<<tag.GetTypeOfPacket() <<std::endl;
-  
+  uint8_t *buffer = new uint8_t[packet->GetSize ()];
+  packet->CopyData (buffer, packet->GetSize ());
+  std::string ruta = std::string (buffer, buffer + packet->GetSize ());
   uint64_t ch = tag.GetChanels ();
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && device->GetIfIndex () != m_n_channels &&
       device->GetIfIndex () != m_n_channels + 1 && VerificaCanal (ch))
     { // Si el numero de secuencia no esta ne la tabla lo guarda para reenviar
-      Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
+      Guarda_Paquete_reenvio (tag.GetSEQNumber (), tag.GetNodeId (), tag.GetCopyNumber (), ruta,
                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
     }
   else if (tag.GetTypeOfPacket () == 2 && device->GetIfIndex () == m_n_channels)
     { //Paquete proveniente del Sink
-      
+
       ConfirmaEntrega (tag.GetSEQNumber ());
     }
   else if (tag.GetTypeOfPacket () == 3 && device->GetIfIndex () == m_n_channels + 1)
@@ -247,9 +286,9 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
       //std::bitset<8> ocu(ch);
       //std::cout << "A-> La ocupación recibida en "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
       BuscaCanalesID (tag.GetChanels (), tag.GetNodeId (), Now ());
-      CanalesDisponibles();
+      CanalesDisponibles ();
     }
-   
+
   return true;
 }
 
@@ -313,7 +352,8 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
 }
 void
 CustomApplication::Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador,
-                                           uint32_t tam_del_paquete, Time timeStamp, int32_t type)
+                                           uint32_t tam_del_paquete, std::string Ruta,
+                                           Time timeStamp, int32_t type)
 {
 
   ST_Reenvios reenvio;
@@ -321,7 +361,9 @@ CustomApplication::Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador,
   reenvio.numeroSEQ = SEQ;
   reenvio.Tam_Paquete = tam_del_paquete;
   reenvio.Tiempo_ultimo_envio = timeStamp;
+  reenvio.ruta = Ruta;
   reenvio.tipo_de_paquete = type;
+
   m_Paquetes_A_Reenviar.push_back (reenvio);
 }
 void
@@ -457,11 +499,12 @@ CustomApplication::RemoveOldNeighbors ()
   Simulator::Schedule (Seconds (1), &CustomApplication::RemoveOldNeighbors, this);
 }
 void
-CustomApplication::iniciaCanales(){
-  for(u_int32_t i = 0; i < m_n_channels; i++)
-  {
-    m_Canales_Para_Utilizar.push_back(i);
-  }
+CustomApplication::iniciaCanales ()
+{
+  for (u_int32_t i = 0; i < m_n_channels; i++)
+    {
+      m_Canales_Para_Utilizar.push_back (i);
+    }
 }
 void
 CustomApplication::CanalesDisponibles ()
@@ -482,11 +525,10 @@ CustomApplication::CanalesDisponibles ()
     {
       if (disp[i] == '0')
         {
-          
+
           m_Canales_Para_Utilizar.push_back (i);
         }
     }
-  
 }
 bool
 CustomApplication::VerificaCanal (uint8_t ch)
@@ -549,5 +591,14 @@ CustomApplication::VerificaFinDeSimulacion ()
         }
     }
   return find;
+}
+void
+CustomApplication::CreaBuffersCanales(){
+  for (uint32_t i = 0; i < GetNode()->GetNDevices(); i++)
+  {
+    std::list<Ptr<Packet>> BufferCH;
+    m_BuffersA.push_back(BufferCH);
+  }
+  
 }
 } // namespace ns3

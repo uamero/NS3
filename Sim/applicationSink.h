@@ -21,7 +21,8 @@ typedef struct
   uint32_t Tam_Paquete;
   Time Tiempo_ultimo_envio;
   int32_t tipo_de_paquete;
-  uint32_t NumeroDeEnvios;  
+  uint32_t NumeroDeEnvios;
+  std::string ruta;  
 } ST_Paquete_A_Enviar_sink;
 
 class ApplicationSink : public ns3::Application
@@ -66,7 +67,7 @@ public:
   //You can create more functions like getters, setters, and others
   bool BuscaSEQEnTabla(u_long SEQ);
   void Guarda_Paquete_para_ACK(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,
-  Time timeStamp,int32_t type);
+  Time timeStamp,int32_t type,std::string Ruta);
   uint32_t m_n_channels;
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
@@ -81,6 +82,7 @@ private:
   Time m_Tiempo_de_reenvio;
   u_long m_semilla;
   WifiMode m_mode; /**< data rate used for broadcasts */
+  uint32_t m_SigmaG;
 };
 } // namespace ns3
 

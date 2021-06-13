@@ -47,7 +47,7 @@ void
 CustomApplicationPnodes::StartApplication ()
 {
   NS_LOG_FUNCTION (this);
-  
+
   //Set A Receive callback
   Ptr<Node> n = GetNode ();
   for (uint32_t i = 0; i < n->GetNDevices (); i++)
@@ -100,6 +100,7 @@ void
 CustomApplicationPnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
+   
   //std::cout<<"Primarios: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
   Ptr<Packet> packet = Create<Packet> (m_PacketSize);
@@ -110,6 +111,7 @@ CustomApplicationPnodes::BroadcastInformation ()
   tag.SetTimestamp (Now ());
   tag.SetTypeOfpacket (3);
   tag.SetChanels (GetCanales ());
+  std::string ruta = std::to_string (GetNode ()->GetId ());
 
   //tag.SetChanels(0);
   packet->AddPacketTag (tag);
@@ -118,8 +120,7 @@ CustomApplicationPnodes::BroadcastInformation ()
   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
- 
-  
+
   Simulator::Schedule (m_broadcast_time, &CustomApplicationPnodes::BroadcastInformation, this);
 }
 

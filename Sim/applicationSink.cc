@@ -38,7 +38,7 @@ ApplicationSink::ApplicationSink ()
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
-  m_n_channels=8;
+  m_n_channels = 8;
 }
 ApplicationSink::~ApplicationSink ()
 {
@@ -46,8 +46,8 @@ ApplicationSink::~ApplicationSink ()
 void
 ApplicationSink::StartApplication ()
 {
-  NS_LOG_FUNCTION (this);
   //Set A Receive callback
+  NS_LOG_FUNCTION (this);
   Ptr<Node> n = GetNode ();
   for (uint32_t i = 0; i < n->GetNDevices (); i++)
     {
@@ -97,21 +97,23 @@ void
 ApplicationSink::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-  
- //std::cout<<"Sink: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
+
+  //std::cout<<"Sink: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
   if (m_Tabla_paquetes_ACK.size () != 0) //hay ACK pendientes
     {
-      
+
       for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
-          it != m_Tabla_paquetes_ACK.end (); it++)
+           it != m_Tabla_paquetes_ACK.end (); it++)
         {
           Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
-          
+
           if (it->NumeroDeEnvios < 3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
-              
-              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode()->GetDevice(m_n_channels));
-              Ptr<Packet> packet = Create<Packet> (m_packetSize);
+
+              m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
+              //Ptr<Packet> packet = Create<Packet> (m_packetSize);
+              std::string ruta = it->ruta;
+              Ptr<Packet> packet = Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
               CustomDataTag tag;
               // El timestamp se configura dentro del constructor del tag
               tag.SetNodeId (GetNode ()->GetId ());
@@ -140,6 +142,7 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
    * 2.- Un paquete que fue enviado por el Sink*/
   CustomDataTag tag;
   NS_LOG_FUNCTION (device << packet << protocol << sender);
+
   /*
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
@@ -149,11 +152,18 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                          << sender << " Size:" << packet->GetSize ());
   packet->PeekPacketTag (tag);
 
+  //uint32_t size;
+  uint8_t *buffer = new uint8_t[packet->GetSize ()];
+  packet->CopyData (buffer, packet->GetSize ());
+
+  std::string ruta = std::string (buffer, buffer + packet->GetSize ());
+  std::cout << "Received Sink: " << ruta << " Size: " << ruta.length () << std::endl;
+
   if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && tag.GetTypeOfPacket () != 2)
     { // Si el numero de secuencia no esta ne la tabla lo guarda para enviar su ACK
-   std::cout<<"Recibi paquete " <<std::endl;
+      std::cout << "Recibi paquete " << std::endl;
       Guarda_Paquete_para_ACK (tag.GetSEQNumber (), tag.GetNodeId (), packet->GetSize (),
-                               tag.GetTimestamp (), tag.GetTypeOfPacket ());
+                               tag.GetTimestamp (), tag.GetTypeOfPacket (), ruta);
 
       //ImprimeTabla ();
     }
@@ -197,7 +207,7 @@ ApplicationSink::CalculaSeqNumber (u_long *sem)
 
 void
 ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                                          Time timeStamp, int32_t type)
+                                          Time timeStamp, int32_t type, std::string Ruta)
 {
   ST_Paquete_A_Enviar_sink ACK;
 
@@ -207,6 +217,7 @@ ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador, uint3
   ACK.Tiempo_ultimo_envio = timeStamp;
   ACK.tipo_de_paquete = type;
   ACK.NumeroDeEnvios = 0;
+  ACK.ruta = Ruta;
   m_Tabla_paquetes_ACK.push_back (ACK);
 }
 
