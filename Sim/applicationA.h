@@ -24,7 +24,7 @@ typedef struct
   Time Tiempo_de_recibo_envio;
   uint32_t NumeroDeEnvios;
   bool Estado; /**> true -> el paquete ha sido entregado*/
-}ST_Paquete_A_Enviar;
+} ST_Paquete_A_Enviar;
 typedef struct
 {
   u_long numeroSEQ;
@@ -33,19 +33,28 @@ typedef struct
   std::string ruta;
   Time Tiempo_ultimo_envio;
   int32_t tipo_de_paquete;
-}ST_Reenvios;
-typedef struct 
+} ST_Reenvios;
+typedef struct
 {
   uint8_t m_chanels;
   Time Tiempo_ultima_actualizacion;
   uint32_t ID_Persive;
-}ST_Canales;
+} ST_Canales;
+typedef struct
+{
+  Ptr<Packet> m_packet;
+  Time m_TimeTosavedOnBuffer;
+} ST_PacketInBufferA;
 
+typedef struct
+{
+  bool m_visitado;
+  std::list<ST_PacketInBufferA> m_PacketAndTime;
+} ST_bufferOfCannelsA;
 
 /*typedef struct
 {
   double Retardo_promedio;
-  
 }ST_SatisfacciónL;*/
 class CustomApplication : public ns3::Application
 {
@@ -59,8 +68,8 @@ public:
   /** \brief Broadcast some information 
              */
   void BroadcastInformation ();
-  void IniciaTabla(uint32_t PQts_A_enviar,uint32_t NodoID);
-  void ImprimeTabla();
+  void IniciaTabla (uint32_t PQts_A_enviar, uint32_t NodoID);
+  void ImprimeTabla ();
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
              */
@@ -83,44 +92,51 @@ public:
   /** \brief Remove neighbors you haven't heard from after some time.
              */
   void RemoveOldNeighbors ();
-  void SetMAxtime(Time Maxtime);
-  Time GetMAxtime();
-  u_long CalculaSeqNumber(u_long *sem);
-  void ConfirmaEntrega(u_long SEQ);
+  void SetMAxtime (Time Maxtime);
+  void ReadPacketOnBuffer ();
+  bool BuscaPaquete ();
+  void CheckBuffer ();
+  Time GetMAxtime ();
+  u_long CalculaSeqNumber (u_long *sem);
+  void ConfirmaEntrega (u_long SEQ);
+  bool
+  VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
+  void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla(u_long SEQ);
-  void Guarda_Paquete_reenvio(u_long SEQ,uint32_t ID_Creador,uint32_t tam_del_paquete,std::string Ruta,
-  Time timeStamp,int32_t type);
-  std::list<ST_Reenvios>::iterator GetReenvio();
-  void setSemilla(u_long sem);
-  void CanalesDisponibles();
-  void CreaBuffersCanales();
+  bool BuscaSEQEnTabla (u_long SEQ);
+  void Guarda_Info_Paquete (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
+                            std::string Ruta, Time timeStamp, int32_t type);
+
+  void setSemilla (u_long sem);
+  void CanalesDisponibles ();
+  void CreaBuffersCanales ();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
-  bool BuscaCanalesID(uint64_t ch,uint32_t ID,Time timD);
-  bool VerificaCanal(uint8_t ch);
-  std::string ObtenDAtosNodo();
-  uint32_t CuentaPQTSEntregados();
-  bool VerificaFinDeSimulacion();
-  std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar;/**> Lista de paquetes a enviar*/
+  bool BuscaCanalesID (uint64_t ch, uint32_t ID, Time timD);
+  bool VerificaCanal (uint8_t ch);
+  std::string ObtenDAtosNodo ();
+  uint32_t CuentaPQTSEntregados ();
+  bool VerificaFinDeSimulacion ();
+  std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar; /**> Lista de paquetes a enviar*/
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Time m_simulation_time;
   uint32_t m_n_channels;
   std::list<uint32_t> m_RangeOfChannels_Info;
 
-   void iniciaCanales();
+  void iniciaCanales ();
+  std::list<ST_Reenvios>
+      m_Paquetes_Recibidos; /**> Lista de paquetes confirmados de entrega por el sink*/
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
   void StartApplication ();
- 
+
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   std::vector<NeighborInformation> m_neighbors; /**< A table representing neighbors of this node */
-  std::list<ST_Reenvios> m_Paquetes_A_Reenviar;/**> Lista de paquetes a reenviar*/
-  std::list<ST_Canales> m_Canales_disponibles;/**> Lista de paquetes a reenviar*/
+  std::list<ST_Canales> m_Canales_disponibles; /**> Lista de paquetes a reenviar*/
   std::list<uint32_t> m_Canales_Para_Utilizar;
-  //std::list<Ptr<Packet>> m_BufferA;
-  std::list<std::list<Ptr<Packet>>> m_BuffersA;//lista que contiene listas que representan a los buffers de cada canal
+  std::list<ST_bufferOfCannelsA>
+      m_bufferA; //lista que contiene listas que representan a los buffers de cada canal
 
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   Time m_Tiempo_de_reenvio;

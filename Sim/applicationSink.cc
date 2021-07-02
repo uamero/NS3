@@ -122,6 +122,7 @@ ApplicationSink::BroadcastInformation ()
               it->NumeroDeEnvios += 1;
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+              std::cout<<"Envie paquete sink"<<std::endl;
               //Simulator::Stop();
               break;
             }

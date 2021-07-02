@@ -241,7 +241,7 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 1; //Numero de nodos en la red
+  uint32_t n_SecundariosA = 1; //Numero de nodos en la red 
   uint32_t n_SecundariosB = 20; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
@@ -528,10 +528,11 @@ main (int argc, char *argv[])
   wifiSink.SetStandard (WIFI_STANDARD_80211g);
   wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
   std::list<uint32_t> List_RangeOfChannels;
-
+  
   /*#####Implementación de los canales en los nodos tipo A y tipo B*/
   for (uint32_t i = 0; i < n_channels; i++)
     {
+      
       YansWifiChannelHelper wifiChannel;
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       uint32_t distance;
@@ -564,7 +565,7 @@ main (int argc, char *argv[])
       wifi.Install (wifiPhy, wifiMac, Sink);
       /*Ese ciclo for instala de 0 a n-1 interfaces en los Nodecontainer de Sencundarios A,B,Primarios y el Sink */
     }
-
+  
   //-------------------->>>>>>>>>>>Probar e identificar que interfaces son las del Sink y las de los usuarios primarios
   /*Termina los canales */
   /*Termina conf. del canal*/
@@ -739,6 +740,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
+      app_i->CreaBuffersCanales();
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
@@ -797,7 +799,7 @@ main (int argc, char *argv[])
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
  
   Simulator::Run (); //Termina simulación
-
+  
   //flow_nodes->SerializeToXmlFile ("estadistics.xml", true, true);
 
   /*###################################################################################*/
