@@ -740,7 +740,6 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
-      app_i->CreaBuffersCanales();
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()

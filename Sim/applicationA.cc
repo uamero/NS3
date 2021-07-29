@@ -245,7 +245,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
       if (NIC == device->GetIfIndex ())
         {
           //std::cout << "Aqui me quedo 3######################################> "
-          //        << device->GetIfIndex () << " | " << NIC << std::endl;
+            //        << device->GetIfIndex () << " | " << NIC << std::endl;
           ST_PacketInBufferA newPacket;
           newPacket.m_packet = packet->Copy ();
           newPacket.m_TimeTosavedOnBuffer = Now ();
@@ -294,7 +294,7 @@ CustomApplication::ReadPacketOnBuffer ()
   for (std::list<ST_bufferOfCannelsA>::iterator it = m_bufferA.begin (); it != m_bufferA.end ();
        it++) //Se itera sobre cada buffer de canal para identificar si hay paquetes a enviar
     {
-
+      
       CustomDataTag tag;
       Ptr<Packet> packet;
       Time TimeInThisNode;
@@ -322,15 +322,15 @@ CustomApplication::ReadPacketOnBuffer ()
           uint64_t ch = tag.GetChanels ();
           //std::cout << "NIC->>>>>> " << NIC << <<std::endl;
           std::cout << "Aqui me quedo Envio paquete1: " << tag.GetSEQNumber () << " | " << NIC
-                    << " | " << m_n_channels << "| " << tag.GetTypeOfPacket () << " | "
-                    << VerificaCanal (ch) << std::endl;
+                   << " | " << m_n_channels << "| " << tag.GetTypeOfPacket () << " | "
+                  << VerificaCanal (ch) << std::endl;
           if (!BuscaSEQEnTabla (tag.GetSEQNumber ()) && NIC != m_n_channels &&
               NIC != m_n_channels + 1 && VerificaCanal (ch))
             { // Si el numero de secuencia no esta en la tabla lo saca del buffer para reenviar
-              Guarda_Info_Paquete (
+              /*Guarda_Paquete_reenvio (
                   tag.GetSEQNumber (), tag.GetNodeId (), tag.GetCopyNumber (), ruta,
                   tag.GetTimestamp (),
-                  tag.GetTypeOfPacket ()); // esta funcion deja de servir por lo tanto hay que borrarla
+                  tag.GetTypeOfPacket ()); // esta funcion deja de servir por lo tanto hay que borrarla*/
               //NS_LOG_UNCOND ("Aqui estoy dentro del envio");
               Ptr<Packet> PacketToReSend =
                   Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
@@ -497,8 +497,9 @@ CustomApplication::IniciaTabla (uint32_t PQts_A_enviar, uint32_t ID)
   // std::cout << "Inicia tabla "<<m_Tabla_paquetes_A_enviar.size()<<std::endl;
 }
 void
-CustomApplication::Guarda_Info_Paquete (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                                        std::string Ruta, Time timeStamp, int32_t type)
+CustomApplication::Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador,
+                                           uint32_t tam_del_paquete, std::string Ruta,
+                                           Time timeStamp, int32_t type)
 {
 
   ST_Reenvios reenvio;
@@ -508,7 +509,8 @@ CustomApplication::Guarda_Info_Paquete (u_long SEQ, uint32_t ID_Creador, uint32_
   reenvio.Tiempo_ultimo_envio = timeStamp;
   reenvio.ruta = Ruta;
   reenvio.tipo_de_paquete = type;
-  m_Paquetes_Recibidos.push_back (reenvio);
+
+  m_Paquetes_A_Reenviar.push_back (reenvio);
 }
 void
 CustomApplication::ConfirmaEntrega (u_long SEQ)
@@ -535,7 +537,13 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)
         }
     }*/
 }
-
+std::list<ST_Reenvios>::iterator
+CustomApplication::GetReenvio ()
+{
+  std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
+  //m_Paquetes_A_Reenviar.erase (it);
+  return it;
+}
 bool
 CustomApplication::BuscaSEQEnTabla (u_long SEQ)
 {

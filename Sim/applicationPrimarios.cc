@@ -131,6 +131,7 @@ CustomApplicationPnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
   /**Hay dos tipos de paquetes que se pueden recibir
    * 1.- Un paquete que fue enviado por este nodo 
    * 2.- Un paquete que fue enviado por el Sink*/
+  CustomDataTag tag;
   NS_LOG_FUNCTION (device << packet << protocol << sender);
   /*
         Packets received here only have Application data, no WifiMacHeader. 

@@ -61,7 +61,7 @@ class CustomApplication : public ns3::Application
 public:
   static TypeId GetTypeId (void);
   virtual TypeId GetInstanceTypeId (void) const;
-
+  
   CustomApplication ();
   ~CustomApplication ();
 
@@ -95,18 +95,17 @@ public:
   void SetMAxtime (Time Maxtime);
   void ReadPacketOnBuffer ();
   bool BuscaPaquete ();
-  void CheckBuffer ();
+  void CheckBuffer();
   Time GetMAxtime ();
   u_long CalculaSeqNumber (u_long *sem);
   void ConfirmaEntrega (u_long SEQ);
-  bool
-  VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
-  void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
+  bool VerificaVisitados();//funcion para iterar sobre todos los canales y ver si ya fueron visitados
+  void ReiniciaVisitados();//funcion para comenzar la iteraci[n desde el primer canal
   //You can create more functions like getters, setters, and others
   bool BuscaSEQEnTabla (u_long SEQ);
-  void Guarda_Info_Paquete (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                            std::string Ruta, Time timeStamp, int32_t type);
-
+  void Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
+                               std::string Ruta, Time timeStamp, int32_t type);
+  std::list<ST_Reenvios>::iterator GetReenvio ();
   void setSemilla (u_long sem);
   void CanalesDisponibles ();
   void CreaBuffersCanales ();
@@ -123,8 +122,7 @@ public:
   std::list<uint32_t> m_RangeOfChannels_Info;
 
   void iniciaCanales ();
-  std::list<ST_Reenvios>
-      m_Paquetes_Recibidos; /**> Lista de paquetes confirmados de entrega por el sink*/
+
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -133,17 +131,18 @@ private:
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   std::vector<NeighborInformation> m_neighbors; /**< A table representing neighbors of this node */
+  std::list<ST_Reenvios> m_Paquetes_A_Reenviar; /**> Lista de paquetes a reenviar*/
   std::list<ST_Canales> m_Canales_disponibles; /**> Lista de paquetes a reenviar*/
   std::list<uint32_t> m_Canales_Para_Utilizar;
-  std::list<ST_bufferOfCannelsA>
-      m_bufferA; //lista que contiene listas que representan a los buffers de cada canal
-
+  std::list<ST_bufferOfCannelsA> m_bufferA;//lista que contiene listas que representan a los buffers de cada canal
+ 
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   Time m_Tiempo_de_reenvio;
   u_long m_semilla;
   WifiMode m_mode; /**< data rate used for broadcasts */
   uint32_t m_satisfaccionL;
   uint32_t m_satisfaccionG;
+  
 };
 } // namespace ns3
 
