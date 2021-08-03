@@ -247,7 +247,7 @@ main (int argc, char *argv[])
   uint32_t n_Sink = 1; //Numero de nodos en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   n_channels = 5; // Numero de canales, por default 8
-  uint32_t Semilla_Sim = 3;
+  uint32_t Semilla_Sim =3;
   uint32_t escenario = 1; //escenario por deffault
 
   bool RWP = true;
@@ -740,6 +740,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
+      app_i->CreaBuffersCanales();
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
