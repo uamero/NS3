@@ -1,4 +1,4 @@
-#include "ns3/wave-module.h"
+
 #include "ns3/wifi-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/core-module.h"
@@ -6,8 +6,11 @@
 #include "applicationB.h" //Nodos secundarios no generadores
 #include "applicationPrimarios.h" //Nodos primarios
 #include "applicationSink.h" //Nodo Sink
-#include "ns3/netanim-module.h"
-#include "My-tag.h"
+#include "SecundariosTag.h"
+#include "SinkTag.h"
+#include "TagPrimarios.h"
+
+
 #include "ns3/random-variable-stream.h"
 #include "ns3/gnuplot.h"
 #include "ns3/simple-device-energy-model.h"
@@ -23,6 +26,7 @@
 #include "ns3/flow-monitor-helper.h"
 #include "ns3/flow-monitor-module.h"
 #include "ns3/flow-monitor.h"
+#include "ns3/animation-interface.h"
 
 #include <iostream>
 #include <fstream>
@@ -75,9 +79,22 @@ showPosition (NodeContainer nodes, double deltaTime)
 void
 MacTxTrace (std::string context, Ptr<const Packet> p)
 {
-  CustomDataTag tag;
-  p->PeekPacketTag (tag);
-  std::cout << context << " " << tag.GetSEQNumber () << std::endl;
+
+  SecundariosDataTag TagSec;
+  SinkDataTag sinkTag;
+  PrimariosDataTag PrimTag;
+  if (p->PeekPacketTag (TagSec))
+    {
+      std::cout << context << " " << TagSec.GetSEQNumber () << std::endl;
+    }
+  else if (p->PeekPacketTag (sinkTag))
+    {
+      std::cout << context << " " << sinkTag.GetSEQNumber () << std::endl;
+    }
+  else if (p->PeekPacketTag (PrimTag))
+    {
+      std::cout << context << " " << PrimTag.GetTypeId() << std::endl;
+    }
 }
 void
 PhyRxDropTrace (std::string context, Ptr<const Packet> packet,
@@ -85,11 +102,22 @@ PhyRxDropTrace (std::string context, Ptr<const Packet> packet,
 {
   //What to do when packet loss happened.
   //Suggestion: Maybe check some packet tags you attached to the packet
-
-  CustomDataTag tag;
-  packet->PeekPacketTag (tag);
-  std::cout << context << " " << reason << " " << tag.GetSEQNumber () << std::endl;
- 
+  SecundariosDataTag TagSec;
+  SinkDataTag sinkTag;
+  PrimariosDataTag PrimTag;
+  if (packet->PeekPacketTag (TagSec))
+    {
+     std::cout << context << " " << reason << " " << TagSec.GetSEQNumber () << std::endl;
+    }
+  else if (packet->PeekPacketTag (sinkTag))
+    {
+      std::cout << context << " " << reason << " " << sinkTag.GetSEQNumber () << std::endl;
+    }
+  else if (packet->PeekPacketTag (PrimTag))
+    {
+      std::cout << context << " " << reason << " " << PrimTag.GetTypeId() << std::endl;
+    }
+  
 }
 void
 Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, WifiTxVector txVector,
@@ -98,7 +126,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
   //context will include info about the source of this event. Use string manipulation if you want to extract info.
   std::cout << BOLD_CODE << context << END_CODE << std::endl;
   //Print the info.
-  
+
   std::cout << "\tSize=" << packet->GetSize () << " Freq=" << channelFreqMhz
             << " Mode=" << txVector.GetMode () << " Signal=" << signalNoise.signal
             << " Noise=" << signalNoise.noise << std::endl;
@@ -128,7 +156,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
                     << std::to_string (MB->GetRoomNumberX ()) << std::endl;
         }
     }
-    std::cout << " Termina RX ()1///////////////////" << std::endl;
+  std::cout << " Termina RX ()1///////////////////" << std::endl;
 }
 
 /*void CreaGraficoNodoA(Time TS){
@@ -162,7 +190,7 @@ void
 verifica_termino_Simulacion ()
 {
   bool termina = true;
-  
+
   for (uint32_t i = 0; i < SA.GetN (); i++)
     {
       Ptr<CustomApplication> appI = DynamicCast<CustomApplication> (SA.Get (i)->GetApplication (0));
@@ -241,13 +269,13 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 1; //Numero de nodos en la red 
+  uint32_t n_SecundariosA = 1; //Numero de nodos en la red
   uint32_t n_SecundariosB = 20; //Numero de nodos en la red
   uint32_t n_Primarios = 1; //Numero de nodos en la red
   uint32_t n_Sink = 1; //Numero de nodos en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   n_channels = 5; // Numero de canales, por default 8
-  uint32_t Semilla_Sim =3;
+  uint32_t Semilla_Sim = 3;
   uint32_t escenario = 1; //escenario por deffault
 
   bool RWP = true;
@@ -528,11 +556,11 @@ main (int argc, char *argv[])
   wifiSink.SetStandard (WIFI_STANDARD_80211g);
   wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
   std::list<uint32_t> List_RangeOfChannels;
-  
+
   /*#####Implementación de los canales en los nodos tipo A y tipo B*/
   for (uint32_t i = 0; i < n_channels; i++)
     {
-      
+
       YansWifiChannelHelper wifiChannel;
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       uint32_t distance;
@@ -565,7 +593,7 @@ main (int argc, char *argv[])
       wifi.Install (wifiPhy, wifiMac, Sink);
       /*Ese ciclo for instala de 0 a n-1 interfaces en los Nodecontainer de Sencundarios A,B,Primarios y el Sink */
     }
-  
+
   //-------------------->>>>>>>>>>>Probar e identificar que interfaces son las del Sink y las de los usuarios primarios
   /*Termina los canales */
   /*Termina conf. del canal*/
@@ -724,7 +752,7 @@ main (int argc, char *argv[])
       app_i->IniciaTabla (n_Packets_A_Enviar, i);
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
-      app_i->CreaBuffersCanales();
+      app_i->CreaBuffersCanales ();
       app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
@@ -740,7 +768,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
-      app_i->CreaBuffersCanales();
+      app_i->CreaBuffersCanales ();
       //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
@@ -797,9 +825,9 @@ main (int argc, char *argv[])
 
   Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
- 
+
   Simulator::Run (); //Termina simulación
-  
+
   //flow_nodes->SerializeToXmlFile ("estadistics.xml", true, true);
 
   /*###################################################################################*/

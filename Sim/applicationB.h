@@ -11,7 +11,7 @@ namespace ns3 {
      */
 
 
-typedef struct
+/*typedef struct
 {
   u_long numeroSEQ;
   uint32_t ID_Creador;
@@ -20,7 +20,14 @@ typedef struct
   int32_t tipo_de_paquete;
   std::string Ruta;
   bool Estado;
+} ST_ReenviosB;*/
+typedef struct
+{
+  Ptr<Packet> m_packet;
+  Time Tiempo_ultimo_envio;
+  Time retardo;
 } ST_ReenviosB;
+
 typedef struct
 {
   uint8_t m_chanels;
@@ -38,6 +45,7 @@ typedef struct
   bool m_visitado;
   std::list<ST_PacketInBufferB> m_PacketAndTime;
 } ST_bufferOfCannelsB;
+
 
 class CustomApplicationBnodes : public ns3::Application
 {
@@ -75,13 +83,10 @@ public:
   /** \brief Remove neighbors you haven't heard from after some time.
              */
   void RemoveOldNeighbors ();
-  bool VerificaSEQRecibido (u_long SEQ);
   void ConfirmaEntrega (u_long SEQ);
   //You can create more functions like getters, setters, and others
   bool BuscaSEQEnTabla (u_long SEQ);
-  void Guarda_Paquete_reenvio (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                               Time timeStamp, int32_t type, std::string Ruta);
-  std::list<ST_ReenviosB>::iterator GetReenvio ();
+  void Guarda_Paquete_reenvio (Ptr<Packet> paquete,Time TimeBuff);
   void CanalesDisponibles ();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID (uint8_t ch, uint32_t ID, Time timD);
@@ -95,6 +100,7 @@ public:
   void iniciaCanales ();
   void ReadPacketOnBuffer ();
   bool BuscaPaquete ();
+  bool Entregado (u_long SEQ);
   void CheckBuffer ();
   void CreaBuffersCanales ();
   bool
@@ -112,6 +118,7 @@ private:
   WifiMode m_mode; /**< data rate used for broadcasts */
   std::list<ST_bufferOfCannelsB>
       m_bufferB; //lista que contiene listas que representan a los buffers de cada canal
+  std::list<ST_PacketInBufferB> m_memoryB;    
 };
 } // namespace ns3
 

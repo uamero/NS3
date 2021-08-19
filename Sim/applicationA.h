@@ -22,18 +22,16 @@ typedef struct
 } ST_Paquete_A_Enviar;
 typedef struct
 {
-  u_long numeroSEQ;
-  uint32_t ID_Creador;
-  uint32_t Tam_Paquete;
-  std::string ruta;
+  Ptr<Packet> m_packet;
   Time Tiempo_ultimo_envio;
-  int32_t tipo_de_paquete;
-} ST_Reenvios;
+  Time retardo;
+} ST_Reenvios;//Esta estructura sirve para almacenar los paquetes
+              //a reenviar dentro de la memoria del nodo y acumula el retardo que se acumula en el paquete
 typedef struct
 {
-  uint8_t m_chanels;
+  uint8_t m_chanels; //esta variable sirve para limitar los canales que se reciben
   Time Tiempo_ultima_actualizacion;
-  uint32_t ID_Persive;
+  uint32_t ID_Persive; //El Id que se persive
 } ST_Canales;
 typedef struct
 {
@@ -99,12 +97,12 @@ public:
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
   //You can create more functions like getters, setters, and others
   bool BuscaSEQEnTabla (u_long SEQ);
-  void Guarda_Info_Paquete (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                            std::string Ruta, Time timeStamp, int32_t type);
+  void Guarda_Info_Paquete (Ptr<Packet> paquete,Time TimeBuff);
 
   void setSemilla (u_long sem);
   void CanalesDisponibles ();
   void CreaBuffersCanales ();
+  void ReenviaPaquete ();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID (uint64_t ch, uint32_t ID, Time timD);
   bool VerificaCanal (uint8_t ch);
@@ -115,10 +113,10 @@ public:
   Time m_simulation_time;
   uint32_t m_n_channels;
   std::list<uint32_t> m_RangeOfChannels_Info;
-
+   bool Entregado (u_long SEQ);
   void iniciaCanales ();
-  std::list<ST_Reenvios>
-      m_Paquetes_Recibidos; /**> Lista de paquetes confirmados de entrega por el sink*/
+  std::list<ST_Reenvios> m_Paquetes_A_Reenviar;/*Lista en donde se almacenan los paquetes a reenviar*/
+  std::list<ST_Reenvios> m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */

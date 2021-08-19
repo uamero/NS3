@@ -11,12 +11,6 @@ namespace ns3 {
      */
 typedef struct
 {
-  Mac48Address neighbor_mac;
-  Time last_beacon;
-} NeighborInformationP;
-
-typedef struct
-{
   u_long numeroSEQ;
   uint32_t ID_Creador;
   uint32_t Tam_Paquete;
@@ -46,20 +40,12 @@ public:
 
   void SetBroadcastInterval (Time interval);
 
-  /** \brief Update a neighbor's last contact time, or add a new neighbor
-             */
-  void UpdateNeighbor (Mac48Address addr);
-  /** \brief Print a list of neighbors
-             */
-  void PrintNeighbors ();
-
   /** \brief Change the data rate used for broadcasts.
              */
   void SetWifiMode (WifiMode mode);
 
   /** \brief Remove neighbors you haven't heard from after some time.
              */
-  void RemoveOldNeighbors ();
   //You can create more functions like getters, setters, and others
   
   uint32_t Corrimientos( uint32_t registro);
@@ -71,10 +57,8 @@ private:
   void StartApplication ();
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
-  std::vector<NeighborInformationP> m_neighbors; /**< A table representing neighbors of this node */
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */
-  uint32_t m_PacketSize;
 };
 } // namespace ns3
 

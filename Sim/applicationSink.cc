@@ -2,7 +2,8 @@
 #include "ns3/log.h"
 #include "ns3/simulator.h"
 #include "applicationSink.h"
-#include "My-tag.h"
+#include "SinkTag.h"
+#include "SecundariosTag.h"
 
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
@@ -122,7 +123,7 @@ ApplicationSink::BroadcastInformation ()
               it->NumeroDeEnvios += 1;
               packet->AddPacketTag (tag);
               m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
-              std::cout<<"Envie paquete sink"<<std::endl;
+              std::cout << "Envie paquete sink" << std::endl;
               //Simulator::Stop();
               break;
             }
@@ -133,21 +134,179 @@ ApplicationSink::BroadcastInformation ()
   //Schedule next broadcast
   Simulator::Schedule (m_broadcast_time, &ApplicationSink::BroadcastInformation, this);
 }
-
 bool
 ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet, uint16_t protocol,
                                 const Address &sender)
 {
-  /**Hay dos tipos de paquetes que se pueden recibir
-   * 1.- Un paquete que fue enviado por este nodo 
-   * 2.- Un paquete que fue enviado por el Sink*/
-  CustomDataTag tag;
+  uint32_t NIC = 0;
+
+  for (std::list<ST_bufferOfCannels_sink>::iterator it = m_bufferSink.begin ();
+       it != m_bufferSink.end (); it++)
+    {
+      if (NIC == device->GetIfIndex ())
+        {
+          //std::cout << "Aqui me quedo 3######################################> "
+          //        << device->GetIfIndex () << " | " << NIC << std::endl;
+          ST_PacketInBuffer_sink newPacket;
+          newPacket.m_packet = packet->Copy ();
+          newPacket.m_TimeTosavedOnBuffer = Now ();
+          it->m_PacketAndTime.push_back (newPacket);
+          break;
+        }
+      NIC++;
+    }
+  CheckBuffer ();
+  //std::cout << "Aqui me quedo 4 #######################333" << std::endl;
+  //m_BufferA.push_back (packet->Copy());
+
+  /*  std::cout << "Se han copiado: " << m_BufferA.size () << " paquetes en el buffer" << std::endl;
+
+  for (std::list<Ptr<Packet>>::iterator it = m_BufferA.begin (); it != m_BufferA.end (); it++)
+    {
+      uint8_t *buff = new uint8_t[(*it)->GetSize()];
+      (*it)->CopyData (buff, packet->GetSize ());
+      std::string sms = std::string (buff, buff + (*it)->GetSize());
+      std::cout << "El paquete tiene: " << sms << " y hay "<<(*it)->GetSize()<<"paquetes en el buffer" << std::endl;
+    }
+  */
   NS_LOG_FUNCTION (device << packet << protocol << sender);
 
   /*
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
     */
+
+  NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
+                                         << sender << " Size:" << packet->GetSize ());
+
+  return true;
+}
+void
+ApplicationSink::ReadPacketOnBuffer ()
+{
+  uint32_t NIC = 0;
+  for (std::list<ST_bufferOfCannels_sink>::iterator it = m_bufferSink.begin ();
+       it != m_bufferSink.end ();
+       it++) //Se itera sobre cada buffer de canal para identificar si hay paquetes a enviar
+    {
+      Ptr<Packet> packet;
+      Time TimeInThisNode;
+      SecundariosDataTag SecundariosTag;
+      SinkDataTag SinkTag;
+      if (packet == NULL)
+        {
+          std::cout << "El paquete esta vacio" << std::endl;
+        }
+      if (it->m_PacketAndTime.size () != 0 &&
+          !(*it)
+               .m_visitado) // Se evalua si el buffer visitado esta vacio o bien si no ha sido visitado
+        {
+          (*it).m_visitado = true;
+          for (std::list<ST_PacketInBuffer_sink>::iterator pck = it->m_PacketAndTime.begin ();
+               pck != it->m_PacketAndTime.end ();
+               pck++) //Este for itera sobre los paquetes del buffer visitado
+            { // este for es para obtener solo un paquete dentro del buffer en el canal n
+              packet = pck->m_packet;
+              TimeInThisNode = Now () - pck->m_TimeTosavedOnBuffer;
+              it->m_PacketAndTime.erase (pck);
+              break;
+            }
+          if (packet->PeekPacketTag (SecundariosTag))
+            { //Se verifica el paquete recibido sea de nodos secundarios
+
+              uint8_t *buffer = new uint8_t[packet->GetSize ()];
+
+              packet->CopyData (buffer, packet->GetSize ());
+
+              std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
+                                 std::to_string (GetNode ()->GetId ());
+
+              Ptr<Packet> PacketToReSend = Create<Packet> ();
+              SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
+              SinkTag.SetSG (m_SigmaG);
+              SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
+
+              PacketToReSend->AddPacketTag (SinkTag);
+              if (Entregado (SecundariosTag.GetSEQNumber ()))
+                {
+                  break; //Si el paquete ya está entregado no se envia el paquete
+                }
+              if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber ()))
+                {
+                  Guarda_Paquete_para_ACK (
+                      PacketToReSend,
+                      TimeInThisNode); //En este punto se almacena en memoria el paquete
+                  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (NIC));
+                  m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (), 0x88dc);
+                }
+
+              // std::cout << "Aqui me quedo Envio paquete2" << std::endl;
+
+              break; //este break rompe el for que itera sobre los buffer de los canales
+            }
+        }
+    }
+}
+void
+ApplicationSink::CheckBuffer ()
+{
+  //std::cout << "Aqui me quedo CheckBuffer1" << std::endl;
+  if (BuscaPaquete ())
+    {
+      // std::cout << "Aqui me quedo CheckBuffer1" << std::endl;
+      ReadPacketOnBuffer ();
+    }
+  if (VerificaVisitados ()) // se verifica si todos los buffers fueron visitados
+    {
+      //std::cout << "Aqui me quedo CheckBuffer2" << std::endl;
+      ReiniciaVisitados (); //si ya fueron visitados se reinician de nuevo las visitas al primer canal (es de forma circular)
+    }
+  Simulator::Schedule (Now () + Seconds (8 * 100 / (m_mode.GetDataRate (10))),
+                       &ApplicationSink::CheckBuffer, this);
+  //std::cout << "Aqui me quedo CheckBuffer2##" << std::endl;
+}
+bool
+ApplicationSink::VerificaVisitados ()
+{
+  bool find = true;
+  for (std::list<ST_bufferOfCannels_sink>::iterator it = m_bufferSink.begin ();
+       it != m_bufferSink.end (); it++)
+    {
+      if ((*it).m_visitado == false)
+        { //si se encuentra un false en algun buffer es por que no ha sido visitado, por lo tanto aun no se debe reiniciar el orden de visita
+
+          find = false;
+          break;
+        }
+    }
+  //std::cout << "Aqui me quedo VerificaVisitados() " << std::to_string (Now ().GetSeconds ())
+  //         << std::endl;
+  return find;
+}
+void
+ApplicationSink::ReiniciaVisitados ()
+{
+  for (std::list<ST_bufferOfCannels_sink>::iterator it = m_bufferSink.begin ();
+       it != m_bufferSink.end (); it++)
+    {
+      (*it).m_visitado = false;
+    }
+  // std::cout << "Aqui me quedo Reinicia : " << std::to_string (Now ().GetSeconds ()) << std::endl;
+}
+
+/*
+bool
+ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet, uint16_t protocol,
+                                const Address &sender)
+{
+ 
+  CustomDataTag tag;
+  NS_LOG_FUNCTION (device << packet << protocol << sender);
+
+  /*
+        Packets received here only have Application data, no WifiMacHeader. 
+        We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
+    *
 
   NS_LOG_INFO ("ReceivePacket() : Node " << GetNode ()->GetId () << " : Received a packet from "
                                          << sender << " Size:" << packet->GetSize ());
@@ -169,56 +328,16 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
       //ImprimeTabla ();
     }
   return true;
-}
+}*/
 
 void
-ApplicationSink::UpdateNeighbor (Mac48Address addr)
+ApplicationSink::Guarda_Paquete_para_ACK (Ptr<Packet> paquete, Time timeBuff)
 {
-  bool found = false;
-  //Go over all neighbors, find one matching the address, and updates its 'last_beacon' time.
-  for (std::vector<NeighborInformation_sink>::iterator it = m_neighbors.begin ();
-       it != m_neighbors.end (); it++)
-    {
-      if (it->neighbor_mac == addr)
-        {
-          it->last_beacon = Now ();
-          found = true;
-          break;
-        }
-    }
-  if (!found) //If no node with this address exist, add a new table entry
-    {
-      NS_LOG_INFO (GREEN_CODE << Now () << " : Node " << GetNode ()->GetId ()
-                              << " is adding a neighbor with MAC=" << addr << END_CODE);
-      NeighborInformation_sink new_n;
-      new_n.neighbor_mac = addr;
-      new_n.last_beacon = Now ();
-      m_neighbors.push_back (new_n);
-    }
-}
-u_long
-ApplicationSink::CalculaSeqNumber (u_long *sem)
-{
-  u_long m = 2147483648;
-  u_long a = 314159269;
-  u_long c = 453806247;
-  *sem = (*sem * a + c) % m;
-  return *sem;
-}
-
-void
-ApplicationSink::Guarda_Paquete_para_ACK (u_long SEQ, uint32_t ID_Creador, uint32_t tam_del_paquete,
-                                          Time timeStamp, int32_t type, std::string Ruta)
-{
-  ST_Paquete_A_Enviar_sink ACK;
-
-  ACK.ID_Creador = ID_Creador;
-  ACK.numeroSEQ = SEQ;
-  ACK.Tam_Paquete = tam_del_paquete;
-  ACK.Tiempo_ultimo_envio = timeStamp;
-  ACK.tipo_de_paquete = type;
-  ACK.NumeroDeEnvios = 0;
-  ACK.ruta = Ruta;
+  ST_Reenvios_Sink ACK;
+  ACK.m_packet = paquete;
+  ACK.retardo = timeBuff;
+  ACK.m_Reenvios = 0;
+  ACK.Tiempo_ultimo_envio = Seconds (0);
   m_Tabla_paquetes_ACK.push_back (ACK);
 }
 
@@ -226,10 +345,31 @@ bool
 ApplicationSink::BuscaSEQEnTabla (u_long SEQ)
 {
   bool find = false;
-  for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
+  for (std::list<ST_Reenvios_Sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
        it != m_Tabla_paquetes_ACK.end (); it++)
     {
-      if (it->numeroSEQ == SEQ)
+      SinkDataTag SinkTAg;
+      it->m_packet->PeekPacketTag (SinkTAg);
+      if (SinkTAg.GetSEQNumber () == SEQ)
+        {
+          find = true;
+          break;
+        }
+    }
+
+  return find;
+}
+
+bool
+ApplicationSink::Entregado (u_long SEQ)
+{
+  bool find = false;
+  for (std::list<ST_Reenvios_Sink>::iterator it = m_Paquetes_Recibidos.begin ();
+       it != m_Paquetes_Recibidos.end (); it++)
+    {
+      SinkDataTag SinkTAg;
+      it->m_packet->PeekPacketTag (SinkTAg);
+      if (SinkTAg.GetSEQNumber () == SEQ)
         {
           find = true;
           break;
@@ -242,48 +382,13 @@ ApplicationSink::ImprimeTabla ()
 {
   std::cout << "\t ********Paquetes recibidos en el Nodo " << GetNode ()->GetId () << " *********"
             << std::endl;
-  for (std::list<ST_Paquete_A_Enviar_sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
+  for (std::list<ST_Reenvios_Sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
        it != m_Tabla_paquetes_ACK.end (); it++)
     {
-      std::cout << " SEQnumber: " << it->numeroSEQ << "\t PacketSize: " << it->Tam_Paquete
-                << "\t Nodo que envia: " << it->ID_Creador << std::endl;
+      SinkDataTag Sinktag;
+      it->m_packet->PeekPacketTag(Sinktag);
+      std::cout << " SEQnumber: " << Sinktag.GetSEQNumber() <<  "\t Nodo que envia: " << Sinktag.GetNodeId() << std::endl;
     }
-}
-void
-ApplicationSink::PrintNeighbors ()
-{
-  std::cout << "Neighbor Info for Node: " << GetNode ()->GetId () << std::endl;
-  for (std::vector<NeighborInformation_sink>::iterator it = m_neighbors.begin ();
-       it != m_neighbors.end (); it++)
-    {
-      std::cout << "\tMAC: " << it->neighbor_mac << "\tLast Contact: " << it->last_beacon
-                << std::endl;
-    }
-}
-
-void
-ApplicationSink::RemoveOldNeighbors ()
-{
-  //Go over the list of neighbors
-  for (std::vector<NeighborInformation_sink>::iterator it = m_neighbors.begin ();
-       it != m_neighbors.end (); it++)
-    {
-      //Get the time passed since the last time we heard from a node
-      Time last_contact = Now () - it->last_beacon;
-
-      if (last_contact >=
-          Seconds (
-              5)) //if it has been more than 5 seconds, we will remove it. You can change this to whatever value you want.
-        {
-          NS_LOG_INFO (RED_CODE << Now () << " Node " << GetNode ()->GetId ()
-                                << " is removing old neighbor " << it->neighbor_mac << END_CODE);
-          //Remove an old entry from the table
-          m_neighbors.erase (it);
-          break;
-        }
-    }
-  //Check the list again after 1 second.
-  Simulator::Schedule (Seconds (1), &ApplicationSink::RemoveOldNeighbors, this);
 }
 
 } // namespace ns3
