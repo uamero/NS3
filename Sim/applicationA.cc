@@ -5,6 +5,8 @@
 #include "SecundariosTag.h"
 #include "SinkTag.h"
 #include "TagPrimarios.h"
+#include "ns3/drop-tail-queue.h"
+
 
 #include <bitset>
 #define RED_CODE "\033[91m"
@@ -36,14 +38,16 @@ CustomApplication::GetInstanceTypeId () const
 
 CustomApplication::CustomApplication ()
 {
-  m_broadcast_time = Seconds (1); //every 1s
+  m_broadcast_time = Seconds (20); //every 1s
   m_packetSize = 1000; //1000 bytes
   m_Tiempo_de_reenvio = Seconds (10); //Tiempo para reenviar los paquetes
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
   m_n_channels = 8;
-
+  m_satisfaccionL = 1;
+  m_satisfaccionG = 0;
+  m_retardo_acumulado = 0;
   //iniciaCanales();
 }
 CustomApplication::~CustomApplication ()
@@ -64,6 +68,7 @@ CustomApplication::StartApplication ()
 
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
+        
           dev->SetReceiveCallback (MakeCallback (&CustomApplication::ReceivePacket, this));
 
           /*
@@ -80,6 +85,7 @@ CustomApplication::StartApplication ()
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
       Simulator::Schedule (m_broadcast_time + random_offset,
                            &CustomApplication::BroadcastInformation, this);
+      
     }
   else
     {
@@ -120,6 +126,7 @@ CustomApplication::BroadcastInformation ()
   //if (m_wifiDevice->GetIfIndex () != 0)
   //{
   // std::cout << "Aqui me quedo 1" << std::endl;
+  
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
@@ -165,11 +172,12 @@ CustomApplication::BroadcastInformation ()
                   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
                   //std::cout<<" Me quedo aqui #############################/"<<" El canal es: "<<std::to_string(*_it)<<std::endl;
                   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+                  // std::cout<<"Nodo: "<<GetNode()->GetId()<<" Genero primer paquete correctamente A "<< Now().GetSeconds() << std::endl;
                 }
             }
           else if (Ultimo_Envio >= m_Tiempo_de_reenvio) //
             {
-              std::string ruta = std::to_string (GetNode ()->GetId ());
+              //std::string ruta = std::to_string (GetNode ()->GetId ());
               it->NumeroDeEnvios += 1;
               it->Tiempo_ultimo_envio = Now ();
               for (std::list<uint32_t>::iterator _it = m_Canales_Para_Utilizar.begin ();
@@ -178,6 +186,7 @@ CustomApplication::BroadcastInformation ()
                   std::string ruta = std::to_string (GetNode ()->GetId ());
                   Ptr<Packet> packet = Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
                   //Ptr<Packet> packet = Create<Packet> (m_packetSize);
+                  //std::cout << "Packet 2 enviado:" << ruta <<  std::endl;
                   SecundariosDataTag etiqueta;
                   etiqueta.SetNodeId (GetNode ()->GetId ());
                   etiqueta.SetSEQnumber (it->numeroSEQ);
@@ -193,6 +202,7 @@ CustomApplication::BroadcastInformation ()
                   //std::cout<<"channel ->>>>>>>>>>>>>> "<<*_it <<std::endl;
                   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
                   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
+                  // std::cout<<"Nodo: "<<GetNode()->GetId()<<" Genero nuevo paquete correctamente A "<< Now().GetSeconds() << std::endl;
                 }
             }
           break;
@@ -246,12 +256,14 @@ void
 CustomApplication::ReenviaPaquete ()
 {
   /*La lista que contiende los paquetes en memoria es m_paquetes_Recibidos*/
+  std::cout << "Time>> " << Now ().GetSeconds () << std::endl;
   for (std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
        it != m_Paquetes_A_Reenviar.end (); it++)
     { //Se itera sobre los paquetes que se almacenan en memoria
+
       Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
-      it->retardo = it->retardo +
-                    Ultimo_Envio; // Esta variable se modifica inicialmente en la lectura de buffer
+      // it->retardo = it->retardo +
+      //              Ultimo_Envio; // Esta variable se modifica inicialmente en la lectura de buffer
 
       if (m_Canales_Para_Utilizar.size () != 0 && Ultimo_Envio >= m_Tiempo_de_reenvio)
         {
@@ -263,20 +275,26 @@ CustomApplication::ReenviaPaquete ()
                _it != m_Canales_Para_Utilizar.end (); _it++)
             {
               SecundariosDataTag etiqueta;
+
               it->m_packet->PeekPacketTag (
                   etiqueta); //Este paquete proviene de la lectura del buffer por lo que ya contiene una etiqueta
+
+              it->retardo = Ultimo_Envio + it->retardo;
+
               etiqueta.SetSL (it->retardo.GetSeconds ()); //aqui se debe involucrar el retardo
               etiqueta.SetChanels (*_it);
-              it->m_packet->AddPacketTag (etiqueta);
+              it->m_packet->ReplacePacketTag (etiqueta);
 
               //std::cout<<"channel ->>>>>>>>>>>>>> "<<*_it <<std::endl;
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
               m_wifiDevice->Send (it->m_packet, Mac48Address::GetBroadcast (), 0x88dc);
               break;
             }
+          break;
         }
     }
-  Simulator::Schedule (Now () + m_Tiempo_de_reenvio, &CustomApplication::ReenviaPaquete, this);
+  //std::cout<<" Tiempo de reenvio: "<<(Now () + m_Tiempo_de_reenvio).GetSeconds()<<std::endl;
+  Simulator::Schedule (m_Tiempo_de_reenvio, &CustomApplication::ReenviaPaquete, this);
 }
 
 bool
@@ -288,7 +306,6 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
    * 2.- Un paquete que fue enviado por el Sink*/
 
   uint32_t NIC = 0;
-
   for (std::list<ST_bufferOfCannelsA>::iterator it = m_bufferA.begin (); it != m_bufferA.end ();
        it++)
     {
@@ -304,7 +321,8 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
         }
       NIC++;
     }
-  CheckBuffer ();
+  Simulator::Schedule (m_broadcast_time + Seconds ((double)(8 * 100) / (m_mode.GetDataRate (10))),
+                       &CustomApplication::CheckBuffer, this);
   //std::cout << "Aqui me quedo 4 #######################333" << std::endl;
   //m_BufferA.push_back (packet->Copy());
 
@@ -318,6 +336,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
       std::cout << "El paquete tiene: " << sms << " y hay "<<(*it)->GetSize()<<"paquetes en el buffer" << std::endl;
     }
   */
+
   NS_LOG_FUNCTION (device << packet << protocol << sender);
 
   /*
@@ -343,10 +362,6 @@ CustomApplication::ReadPacketOnBuffer ()
       SinkDataTag SinkTag;
       PrimariosDataTag PrimariosTag;
 
-      if (packet == NULL)
-        {
-          std::cout << "El paquete esta vacio" << std::endl;
-        }
       if (it->m_PacketAndTime.size () != 0 &&
           !(*it)
                .m_visitado) // Se evalua si el buffer visitado esta vacio o bien si no ha sido visitado
@@ -368,6 +383,8 @@ CustomApplication::ReadPacketOnBuffer ()
                   VerificaCanal (SecundariosTag.GetChanels ()))
                 {
 
+                  
+                  
                   uint8_t *buffer = new uint8_t[packet->GetSize ()];
 
                   packet->CopyData (buffer, packet->GetSize ());
@@ -386,12 +403,14 @@ CustomApplication::ReadPacketOnBuffer ()
                       PacketToReSend->AddPacketTag (SecundariosTag);
                       if (Entregado (SecundariosTag.GetSEQNumber ()))
                         {
-                          break;//Si el paquete ya está entregado no se envia el paquete
+                          break; //Si el paquete ya está entregado no se envia el paquete
                         }
                       if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber ()))
                         {
+                          m_retardo_acumulado += TimeInThisNode.GetMilliSeconds ();
+                          std::cout << "Si me meto aqui AAAAAA" << std::endl;
                           Guarda_Info_Paquete (
-                              PacketToReSend,
+                              PacketToReSend->Copy (),
                               TimeInThisNode); //En este punto se almacena en memoria el paquete
                         }
 
@@ -400,6 +419,7 @@ CustomApplication::ReadPacketOnBuffer ()
                       // std::cout << "Aqui me quedo Envio paquete2" << std::endl;
                       break;
                     }
+
                   break; //este break rompe el for que itera sobre los buffer de los canales
                 }
             }
@@ -407,8 +427,10 @@ CustomApplication::ReadPacketOnBuffer ()
             {
               if (NIC == m_n_channels)
                 {
+                  SinkTag.Print (std::cout);
                   std::cout << "Si confirmo la entrega" << std::endl;
                   ConfirmaEntrega (SinkTag.GetSEQNumber ());
+                  break;
                 }
             }
           else if (packet->PeekPacketTag (PrimariosTag))
@@ -417,6 +439,7 @@ CustomApplication::ReadPacketOnBuffer ()
                 {
                   BuscaCanalesID (PrimariosTag.GetChanels (), PrimariosTag.GetnodeID (), Now ());
                   CanalesDisponibles ();
+                  break;
                 }
             }
         }
@@ -556,8 +579,9 @@ CustomApplication::CheckBuffer ()
       //std::cout << "Aqui me quedo CheckBuffer2" << std::endl;
       ReiniciaVisitados (); //si ya fueron visitados se reinician de nuevo las visitas al primer canal (es de forma circular)
     }
-  Simulator::Schedule (Now () + Seconds (8 * 100 / (m_mode.GetDataRate (10))),
+  Simulator::Schedule (Seconds ((double) (8 * 100) / (m_mode.GetDataRate (10))),
                        &CustomApplication::CheckBuffer, this);
+                       //El data rate es de 6Mbps
   //std::cout << "Aqui me quedo CheckBuffer2##" << std::endl;
 }
 bool
@@ -650,24 +674,25 @@ CustomApplication::Entregado (u_long SEQ)
   return find;
 }
 void
-CustomApplication::ConfirmaEntrega (u_long SEQ)//faltan mas datos para tener un buena entrega
+CustomApplication::ConfirmaEntrega (
+    u_long SEQ) //faltan mas datos para tener una buena entrega, tiempo, satisfaccion, etc
 {
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
-       SecundariosDataTag SecTAg;
-       ST_Reenvios entregado;
+      SecundariosDataTag SecTAg;
+      ST_Reenvios entregado;
 
       if (it->numeroSEQ == SEQ)
         {
-          Ptr<Packet> np = Create<Packet>();
-          SecTAg.SetSEQnumber(SEQ);
-          SecTAg.SetNodeId(GetNode()->GetId());
+          Ptr<Packet> np = Create<Packet> ();
+          SecTAg.SetSEQnumber (SEQ);
+          SecTAg.SetNodeId (GetNode ()->GetId ());
 
-          np->AddPacketTag(SecTAg);
-          entregado.retardo=Seconds(0);
-          entregado.Tiempo_ultimo_envio=Now();
-          entregado.m_packet=np;
+          np->AddPacketTag (SecTAg);
+          entregado.retardo = Seconds (0);
+          entregado.Tiempo_ultimo_envio = Now ();
+          entregado.m_packet = np;
 
           it->Tiempo_de_recibo_envio = Now () - it->Tiempo_ultimo_envio;
           it->Estado = true;
@@ -684,8 +709,8 @@ CustomApplication::ConfirmaEntrega (u_long SEQ)//faltan mas datos para tener un 
       it->m_packet->PeekPacketTag (SecTAg);
       if (SecTAg.GetSEQNumber () == SEQ)
         {
-           m_Paquetes_Recibidos.push_back ((*it));
-           m_Paquetes_A_Reenviar.erase (it);
+          m_Paquetes_Recibidos.push_back ((*it));
+          m_Paquetes_A_Reenviar.erase (it);
           break;
         }
     }
@@ -695,6 +720,7 @@ bool
 CustomApplication::BuscaSEQEnTabla (u_long SEQ)
 {
   bool find = false;
+
   for (std::list<ST_Paquete_A_Enviar>::iterator it = m_Tabla_paquetes_A_enviar.begin ();
        it != m_Tabla_paquetes_A_enviar.end (); it++)
     {
@@ -704,6 +730,7 @@ CustomApplication::BuscaSEQEnTabla (u_long SEQ)
           break;
         }
     }
+
   for (std::list<ST_Reenvios>::iterator it = m_Paquetes_A_Reenviar.begin ();
        it != m_Paquetes_A_Reenviar.end (); it++)
     {

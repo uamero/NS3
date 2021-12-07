@@ -70,6 +70,11 @@ PrimariosDataTag::Deserialize (TagBuffer i)
   m_chanels = i.ReadU64 ();
 }
 
+void 
+PrimariosDataTag::Print (std::ostream &os) const
+{
+  os << "Primarios DataTag --- Node :" << m_nodeID <<  "\t Canales: (" << m_chanels  << ")";
+}
 //Your accessor and mutator functions
 
 uint64_t

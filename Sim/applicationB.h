@@ -119,6 +119,9 @@ private:
   std::list<ST_bufferOfCannelsB>
       m_bufferB; //lista que contiene listas que representan a los buffers de cada canal
   std::list<ST_PacketInBufferB> m_memoryB;    
+  uint32_t m_satisfaccionL;
+  uint32_t m_satisfaccionG;
+  double m_retardo_acumulado;
 };
 } // namespace ns3
 

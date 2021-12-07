@@ -35,8 +35,6 @@ public:
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
              */
-  bool ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet, uint16_t protocol,
-                      const Address &sender);
 
   void SetBroadcastInterval (Time interval);
 

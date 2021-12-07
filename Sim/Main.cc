@@ -9,8 +9,7 @@
 #include "SecundariosTag.h"
 #include "SinkTag.h"
 #include "TagPrimarios.h"
-
-
+#include "ns3/data-collector.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/gnuplot.h"
 #include "ns3/simple-device-energy-model.h"
@@ -27,6 +26,7 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/flow-monitor.h"
 #include "ns3/animation-interface.h"
+
 
 #include <iostream>
 #include <fstream>
@@ -93,7 +93,7 @@ MacTxTrace (std::string context, Ptr<const Packet> p)
     }
   else if (p->PeekPacketTag (PrimTag))
     {
-      std::cout << context << " " << PrimTag.GetTypeId() << std::endl;
+      std::cout << context << " " << PrimTag.GetTypeId () << std::endl;
     }
 }
 void
@@ -105,9 +105,10 @@ PhyRxDropTrace (std::string context, Ptr<const Packet> packet,
   SecundariosDataTag TagSec;
   SinkDataTag sinkTag;
   PrimariosDataTag PrimTag;
+  
   if (packet->PeekPacketTag (TagSec))
     {
-     std::cout << context << " " << reason << " " << TagSec.GetSEQNumber () << std::endl;
+      std::cout << context << " " << reason << " " << TagSec.GetSEQNumber () << std::endl;
     }
   else if (packet->PeekPacketTag (sinkTag))
     {
@@ -115,9 +116,8 @@ PhyRxDropTrace (std::string context, Ptr<const Packet> packet,
     }
   else if (packet->PeekPacketTag (PrimTag))
     {
-      std::cout << context << " " << reason << " " << PrimTag.GetTypeId() << std::endl;
+      std::cout << context << " " << reason << " " << PrimTag.GetTypeId () << std::endl;
     }
-  
 }
 void
 Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, WifiTxVector txVector,
@@ -125,6 +125,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
 {
   //context will include info about the source of this event. Use string manipulation if you want to extract info.
   std::cout << BOLD_CODE << context << END_CODE << std::endl;
+  
   //Print the info.
 
   std::cout << "\tSize=" << packet->GetSize () << " Freq=" << channelFreqMhz
@@ -151,7 +152,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
         {
           Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
 
-          std::cout << "EL pisodel nodo " << std::to_string ((*nodoIT)->GetId ())
+          std::cout << "EL piso del nodo " << std::to_string ((*nodoIT)->GetId ())
                     << " es: " << std::to_string (MB->GetFloorNumber ())
                     << std::to_string (MB->GetRoomNumberX ()) << std::endl;
         }
@@ -555,6 +556,7 @@ main (int argc, char *argv[])
   wifi.SetStandard (WIFI_STANDARD_80211g);
   wifiSink.SetStandard (WIFI_STANDARD_80211g);
   wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
+  
   std::list<uint32_t> List_RangeOfChannels;
 
   /*#####Implementación de los canales en los nodos tipo A y tipo B*/
@@ -736,7 +738,10 @@ main (int argc, char *argv[])
   AnimationInterface anim ("manetPB.xml");
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
-
+  uint32_t img_phone = anim.AddResource("/home/manolo/bake/source/ns-3.32/cel.png");
+  uint32_t img_tower = anim.AddResource("/home/manolo/bake/source/ns-3.32/torre.png");
+  uint32_t img_alarmado = anim.AddResource("/home/manolo/bake/source/ns-3.32/response.png");
+  uint32_t img_fm = anim.AddResource("/home/manolo/bake/source/ns-3.32/fire-man.png");
   /*Comienza la instalación de la aplicación en los nodos*/
   for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
@@ -756,10 +761,12 @@ main (int argc, char *argv[])
       app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
+      anim.UpdateNodeImage(SecundariosA.Get (i)->GetId (),img_alarmado);
       //app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
     {
+      
       //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
       //std::ostringstream oss;
       Ptr<CustomApplicationBnodes> app_i = CreateObject<CustomApplicationBnodes> ();
@@ -774,6 +781,7 @@ main (int argc, char *argv[])
       // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
       //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
       anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
+      anim.UpdateNodeImage(SecundariosB.Get (i)->GetId (),img_phone);
     }
 
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
@@ -788,6 +796,7 @@ main (int argc, char *argv[])
       //app_i->SetStopTime (Seconds (simTime));
       Primarios.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
+      anim.UpdateNodeImage(Primarios.Get (i)->GetId (),img_tower);
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
     {
@@ -797,16 +806,19 @@ main (int argc, char *argv[])
       //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
       app_i->m_n_channels = n_channels;
+       app_i->CreaBuffersCanales ();
       //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      anim.UpdateNodeImage(Sink.Get (i)->GetId (),img_fm);
     }
 
+  Packet::EnablePrinting();
   /*Termina instalación de la aplicación*/
-
+  
   std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
-  //                 MakeCallback (&Rx));
+   //                MakeCallback (&Rx));
   //Config::Connect (path, MakeCallback (&PhyRxDropTrace));
 
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx", MakeCallback (&MacTxTrace));
@@ -827,7 +839,7 @@ main (int argc, char *argv[])
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);
 
   Simulator::Run (); //Termina simulación
-
+ 
   //flow_nodes->SerializeToXmlFile ("estadistics.xml", true, true);
 
   /*###################################################################################*/
@@ -845,11 +857,11 @@ main (int argc, char *argv[])
       // NS_ASSERT (energyConsumed <= 1.0);
     }*/
   //std::cout << "Post Simulation: " << std::endl;
-
   FILE *datos;
   if (StartSimulation)
     {
-      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+      std::cout << "Post Simulation: " << std::endl;
+      std::string ruta = "/home/manolo/bake/source/ns-3.32/results/" + CSVFile;
       datos = fopen (ruta.c_str (), "w");
       /* std::string info =
           "Información de la simulación | Secundarios A: " + std::to_string (n_SecundariosA) +
@@ -862,7 +874,8 @@ main (int argc, char *argv[])
     }
   else
     {
-      std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+      //std::string ruta = "/home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+      std::string ruta = "/home/manolo/bake/source/ns-3.32/results/" + CSVFile;
       datos = fopen (ruta.c_str (), "a");
     }
 
@@ -895,7 +908,7 @@ main (int argc, char *argv[])
     }
 
   fclose (datos);
-
+  
   /*Ptr<ApplicationSink> appI = DynamicCast<ApplicationSink> (Sink.Get (0)->GetApplication (0));
   appI->ImprimeTabla ();
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
@@ -907,8 +920,9 @@ main (int argc, char *argv[])
 */
   //Termina la simulación
   Simulator::Destroy ();
-  std::string comando = "chmod 777 /home/manuel/Escritorio/Datos_Sim/" + CSVFile;
+  std::string comando = "chmod 777 /home/manolo/bake/source/ns-3.32/results/" + CSVFile;
   system (comando.c_str ());
+ 
   //system ("libreoffice /home/manuel/Escritorio/Datos_Sim/datos.csv &");
   return 0;
 }

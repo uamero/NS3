@@ -35,6 +35,7 @@ typedef struct
 } ST_Canales;
 typedef struct
 {
+  
   Ptr<Packet> m_packet;
   Time m_TimeTosavedOnBuffer;
 } ST_PacketInBufferA;
@@ -84,7 +85,8 @@ public:
 
   /** \brief Remove neighbors you haven't heard from after some time.
              */
-
+  
+ 
   void SetMAxtime (Time Maxtime);
   void ReadPacketOnBuffer ();
   bool BuscaPaquete ();
@@ -135,6 +137,7 @@ private:
   WifiMode m_mode; /**< data rate used for broadcasts */
   uint32_t m_satisfaccionL;
   uint32_t m_satisfaccionG;
+  double m_retardo_acumulado;
 };
 } // namespace ns3
 

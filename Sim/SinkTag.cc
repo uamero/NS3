@@ -32,6 +32,13 @@ SinkDataTag::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::SinkDataTag").SetParent<Tag> ().AddConstructor<SinkDataTag> ();
   return tid;
 }
+void 
+SinkDataTag::Print (std::ostream &os) const
+{
+  
+  os << "Sink Data Tag--- from Node :" << m_nodeID <<  "\t SEQN: (" << m_SEQNumber  << ")" << " Satisfación G:  (" << m_SG << ")" << std::endl;;
+}
+
 TypeId
 SinkDataTag::GetInstanceTypeId (void) const
 {

@@ -28,7 +28,7 @@ typedef struct
   Ptr<Packet> m_packet;
   Time Tiempo_ultimo_envio;
   Time retardo;
-  uint8_t m_Reenvios;
+  uint8_t NumeroDeEnvios;
 } ST_Reenvios_Sink;
 
 class ApplicationSink : public ns3::Application
@@ -45,6 +45,7 @@ public:
   void BroadcastInformation ();
   void IniciaTabla(uint32_t PQts_A_enviar);
   void ImprimeTabla();
+  void CreaBuffersCanales ();
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
              */
@@ -87,7 +88,7 @@ private:
   std::list<ST_bufferOfCannels_sink>
       m_bufferSink;
   std::list<ST_Reenvios_Sink> m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
- 
+  double m_retardo_acumulado;
 };
 } // namespace ns3
 

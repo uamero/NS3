@@ -7,6 +7,7 @@
 #include "SecundariosTag.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
+#include <iostream>
 
 namespace ns3 {
 
@@ -17,11 +18,13 @@ SecundariosDataTag::SecundariosDataTag ()
 {
   /*Al crear un objeto del tipo SecundariosDataTag se manda a llamar el constructor de clase
   creando un tag predefinido con las siguientes condiciones*/
-  m_timestamp = Simulator::Now ();
+  //m_timestamp = Simulator::Now ();
+  
+  m_timestamp = Time(0);
   m_nodeId = -1;
   m_SEQNumber = 1;
   m_chanels = 0;
-  m_SL = 0;
+  m_SL = 1;
 }
 
 SecundariosDataTag::~SecundariosDataTag ()
@@ -34,7 +37,7 @@ SecundariosDataTag::GetTypeId (void)
 {
   static TypeId tid =
       TypeId ("ns3::SecundariosDataTag").SetParent<Tag> ().AddConstructor<SecundariosDataTag> ();
-  return tid;
+  return tid; 
 }
 TypeId
 SecundariosDataTag::GetInstanceTypeId (void) const
@@ -90,6 +93,11 @@ SecundariosDataTag::Deserialize (TagBuffer i)
  */
 
 //Your accessor and mutator functions
+void 
+SecundariosDataTag::Print (std::ostream &os) const
+{
+  os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: ("<<m_SEQNumber<< ")" <<"\t Retardo total: (" << (Now() - m_timestamp).GetSeconds()  << ")" << " Satisfaccíon L: (" << m_SL << ")" << std::endl;
+}
 
 uint32_t
 SecundariosDataTag::GetNodeId ()
@@ -101,6 +109,11 @@ Time
 SecundariosDataTag::GetTimestamp ()
 {
   return this->m_timestamp;
+}
+
+void 
+SecundariosDataTag::SetTimestamp(Time timeStamp){
+  m_timestamp = timeStamp;
 }
 
 u_long
@@ -129,11 +142,11 @@ SecundariosDataTag::SetNodeId (uint32_t node_id) /*> Id del nodo que envia*/
 {
   this->m_nodeId = node_id;
 }
-void
+/*void
 SecundariosDataTag::SetTimestamp (Time t)
 {
   this->m_timestamp = t;
-}
+}*/
 void
 SecundariosDataTag::SetChanels (uint64_t chanels)
 {

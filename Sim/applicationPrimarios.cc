@@ -49,9 +49,9 @@ CustomApplicationPnodes::StartApplication ()
 
   //Set A Receive callback
   Ptr<Node> n = GetNode ();
-  Ptr<NetDevice> dev = n->GetDevice (m_n_channels +1);
-  m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
-  /*for (uint32_t i = 0; i < n->GetNDevices (); i++)
+  //Ptr<NetDevice> dev = n->GetDevice (m_n_channels +1);
+  //m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
+  for (uint32_t i = 0; i < n->GetNDevices (); i++)
     {
       Ptr<NetDevice> dev = n->GetDevice (i);
       //std::cout<<"config: "<<i<<std::endl;
@@ -59,15 +59,14 @@ CustomApplicationPnodes::StartApplication ()
         {
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
-          dev->SetReceiveCallback (MakeCallback (&CustomApplicationPnodes::ReceivePacket, this));
-
+         // dev->SetReceiveCallback (MakeCallback (&CustomApplicationPnodes::ReceivePacket, this));
           /*
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
-            
+           */ 
           //break;
         }
-    }*/
+    }
   if (m_wifiDevice)
     {
 
@@ -129,6 +128,7 @@ CustomApplicationPnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
    * 1.- Un paquete que fue enviado por este nodo 
    * 2.- Un paquete que fue enviado por el Sink*
   NS_LOG_FUNCTION (device << packet << protocol << sender);
+  */
   /*
         Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.

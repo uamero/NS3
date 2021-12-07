@@ -25,13 +25,14 @@ public:
   //Vector GetPosition(void);
   uint32_t GetNodeId (); /*> Id del nodo que envia*/
   Time GetTimestamp ();
+  void SetTimestamp (Time timeStamp);
   uint32_t GetNodeSinkId (); /*> Id del nodo que recibira el paquete*/
   u_long GetSEQNumber ();
   uint64_t GetChanels ();
   double GetSL(); 
   //void SetPosition (Vector pos);
   void SetNodeId (uint32_t node_id); /*> Id del nodo que envia*/
-  void SetTimestamp (Time t);
+  //void SetTimestamp (Time t);
   void SetChanels (uint64_t chanels);
   void SetSEQnumber(uint64_t SEQ);
   void SetSL(double SL);
