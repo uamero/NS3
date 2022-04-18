@@ -30,8 +30,10 @@ public:
   u_long GetSEQNumber ();
   uint64_t GetChanels ();
   double GetSL(); 
+  uint32_t GetNodeIdPrev();
   //void SetPosition (Vector pos);
   void SetNodeId (uint32_t node_id); /*> Id del nodo que envia*/
+  void SetNodeIdPrev (uint32_t node_idPrev); /*> Id del nodo que envia*/
   //void SetTimestamp (Time t);
   void SetChanels (uint64_t chanels);
   void SetSEQnumber(uint64_t SEQ);
@@ -41,10 +43,11 @@ public:
 
 private:
   uint32_t m_nodeId; /**> Id del nodo creador*/
+  uint32_t m_nodeIdPrev; /**> Id del nodo creador*/
   Time m_timestamp; /**> Tiempo en el que el paquete se creó*/
   uint64_t m_SEQNumber; /**> Numero de secuencia que identifica al paquete*/
   uint64_t m_chanels;
-  double m_SL;//Valor de la satisfacción local de este paquete
+  double m_SL;//Valor de la satisfacción local previa de este paquete
 };
 } // namespace ns3
 

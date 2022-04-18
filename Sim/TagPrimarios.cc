@@ -18,7 +18,6 @@ PrimariosDataTag::PrimariosDataTag ()
   /*Al crear un objeto del tipo PrimariosDataTag se manda a llamar el constructor de clase
   creando un tag predefinido con las siguientes condiciones*/
 
-  m_chanels = 0;
 }
 
 PrimariosDataTag::~PrimariosDataTag ()
@@ -49,7 +48,7 @@ uint32_t
 PrimariosDataTag::GetSerializedSize (void) const
 {
   /** Para este tag unicamente se requiere una variable de 64bits para almacenar los canales*/
-  return sizeof (uint64_t) + sizeof (uint32_t);
+  return sizeof (uint32_t);
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -58,7 +57,7 @@ void
 PrimariosDataTag::Serialize (TagBuffer i) const
 {
   i.WriteU32 (m_nodeID);
-  i.WriteU64 (m_chanels);
+  
 }
 /** This function reads data from a buffer and store it in class's instance variables.
  */
@@ -67,31 +66,22 @@ void
 PrimariosDataTag::Deserialize (TagBuffer i)
 {
   m_nodeID = i.ReadU32 ();
-  m_chanels = i.ReadU64 ();
+ 
 }
 
 void 
 PrimariosDataTag::Print (std::ostream &os) const
 {
-  os << "Primarios DataTag --- Node :" << m_nodeID <<  "\t Canales: (" << m_chanels  << ")";
+  os << "Primarios DataTag --- Node :" << m_nodeID ;
 }
 //Your accessor and mutator functions
 
-uint64_t
-PrimariosDataTag::GetChanels ()
-{
-  return m_chanels;
-}
 uint32_t
 PrimariosDataTag::GetnodeID ()
 {
   return m_nodeID;
 }
-void
-PrimariosDataTag::SetChanels (uint64_t chanels)
-{
-  m_chanels = chanels;
-}
+
 void
 PrimariosDataTag::SetNodeId (uint32_t nodeId)
 {

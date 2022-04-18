@@ -34,10 +34,10 @@ CustomApplicationPnodes::GetInstanceTypeId () const
 
 CustomApplicationPnodes::CustomApplicationPnodes ()
 {
-  m_broadcast_time = Seconds (5); //every 101ms
-  m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
+  m_broadcast_time = Seconds (10); //every 101ms
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_n_channels = 8;
+  m_porcentaje_Ch_disp = 10; //numero de 0% a 100%
 }
 CustomApplicationPnodes::~CustomApplicationPnodes ()
 {
@@ -59,11 +59,11 @@ CustomApplicationPnodes::StartApplication ()
         {
           m_wifiDevice = DynamicCast<WifiNetDevice> (dev);
           //ReceivePacket will be called when a packet is received
-         // dev->SetReceiveCallback (MakeCallback (&CustomApplicationPnodes::ReceivePacket, this));
+          // dev->SetReceiveCallback (MakeCallback (&CustomApplicationPnodes::ReceivePacket, this));
           /*
             If you want promiscous receive callback, connect to this trace. 
             For every packet received, both functions ReceivePacket & PromiscRx will be called. with PromicRx being called first!
-           */ 
+           */
           //break;
         }
     }
@@ -73,7 +73,7 @@ CustomApplicationPnodes::StartApplication ()
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
-      Simulator::Schedule (m_broadcast_time + random_offset,
+      Simulator::Schedule (random_offset,
                            &CustomApplicationPnodes::BroadcastInformation, this);
     }
   else
@@ -100,15 +100,20 @@ void
 CustomApplicationPnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
-   
+  GetCanales ();
   //std::cout<<"Primarios: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
-  Ptr<Packet> packet = Create<Packet> ();
+  //uint8_t *buffer = new uint8_t[std::strlen(m_chs.c_str ())];
+
+  //packet->CopyData (buffer, packet->GetSize ());
+  //std::string ruta = std::string (buffer, buffer + packet->GetSize ());
+  //Ptr<Packet> PacketToReSend = Create<Packet> ((uint8_t *) m_chs.c_str (), m_chs.length ());
+
+  Ptr<Packet> packet = Create<Packet> ((uint8_t *) m_chs.c_str (), m_chs.length ());
+ // Ptr<Packet> packet = Create<Packet> ();
   PrimariosDataTag tag;
   // El timestamp se configrua dentro del constructor del tag
   tag.SetNodeId (GetNode ()->GetId ());
-  tag.SetChanels (GetCanales ());
- 
   //tag.SetChanels(0);
   packet->AddPacketTag (tag);
   //std::bitset<8> ocu(tag.GetChanels());
@@ -124,13 +129,12 @@ CustomApplicationPnodes::BroadcastInformation ()
 CustomApplicationPnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                         uint16_t protocol, const Address &sender)
 {
-  /**Hay dos tipos de paquetes que se pueden recibir
+  Hay dos tipos de paquetes que se pueden recibir
    * 1.- Un paquete que fue enviado por este nodo 
    * 2.- Un paquete que fue enviado por el Sink*
   NS_LOG_FUNCTION (device << packet << protocol << sender);
-  */
-  /*
-        Packets received here only have Application data, no WifiMacHeader. 
+  
+       Packets received here only have Application data, no WifiMacHeader. 
         We created packets with 1000 bytes payload, so we'll get 1000 bytes of payload.
     *
 
@@ -141,19 +145,45 @@ CustomApplicationPnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
 }
 */
 
-uint8_t
+void
 CustomApplicationPnodes::GetCanales ()
 {
+  //se calcula el numero de canales que seran ocupados
+  uint32_t N_chs = (m_porcentaje_Ch_disp / 100.0) * m_n_channels;
+  if (N_chs == 0)
+    {
+      N_chs = 1;
+    } //como minimo un canal se ocupa
+
+  uint32_t CD[m_n_channels];
+  m_chs = "";
+  for (uint32_t i = 0; i < m_n_channels; i++)
+    {
+      CD[i] = 0;
+    }
+
   //srand (time (NULL));
-  uint64_t canales = rand () % ((uint64_t) pow (2, m_n_channels) - 1);
-  std::bitset<64> x (canales);
-  //std::string cadena = x.to_string ();
+  uint32_t i = 0;
+  while (i != N_chs)
+    {
+      uint32_t disp = rand () % (m_n_channels -
+                                 1); //se genera un numero aleatorio entre 0 y numero de canales -1
+      if (CD[disp] == 0)
+        {
+          CD[disp] = 1;
+          i++;
+        }
+    }
+
+  for (uint32_t i = 0; i < m_n_channels; i++)
+    {
+      m_chs = m_chs + std::to_string (CD[i]);
+    }
+  //std::cout << m_chs << "  los canales disp. " << N_chs << " en el nodo: "<<GetNode()->GetId() <<std::endl;
+  //uint128_t canales = rand () % ((uint128_t) pow (2, m_n_channels) - 1);
+  // std::bitset<128> x (canales);
+  // m_chs = x.to_string ();
   //std::string disp = std::string (cadena.rbegin (), cadena.rend ());
-  return canales;
 }
-
-
-
-
 
 } // namespace ns3

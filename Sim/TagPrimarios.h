@@ -25,16 +25,13 @@ public:
 
   //These are custom accessor & mutator functions
   //Vector GetPosition(void);
-  uint64_t GetChanels();
   uint32_t GetnodeID();
   
-  void SetChanels(uint64_t chanels);
   void SetNodeId(uint32_t ID);
   PrimariosDataTag ();
   virtual ~PrimariosDataTag ();
 
 private:
-  uint64_t m_chanels;
   uint32_t m_nodeID;
 };
 } // namespace ns3

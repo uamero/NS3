@@ -54,7 +54,7 @@ SinkDataTag::GetInstanceTypeId (void) const
 uint32_t
 SinkDataTag::GetSerializedSize (void) const
 {
-  return sizeof (u_long) + sizeof (double) + sizeof(uint32_t);
+  return sizeof (u_long) + sizeof (double) + sizeof(uint32_t) +sizeof(ns3::Time);
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -66,6 +66,7 @@ SinkDataTag::Serialize (TagBuffer i) const
   i.WriteU64 (m_SEQNumber);
   i.WriteDouble (m_SG);
   i.WriteU32(m_nodeID);
+  i.WriteDouble(m_timestamp.GetDouble());
 }
 /** This function reads data from a buffer and store it in class's instance variables.
  */
@@ -80,6 +81,8 @@ SinkDataTag::Deserialize (TagBuffer i)
   m_SG = i.ReadDouble ();
   //Se lee el Id del nodo que envia el paquete
   m_nodeID = i.ReadU32();
+
+  m_timestamp = Time::FromDouble(i.ReadDouble(),Time::NS);
 }
 /**
  * This function can be used with ASCII traces if enabled. 
@@ -91,7 +94,10 @@ SinkDataTag::GetSEQNumber ()
 
   return this->m_SEQNumber;
 }
-
+Time 
+SinkDataTag::GetTimestamp(){
+  return m_timestamp;
+}
 void
 SinkDataTag::SetSEQNumber (u_long number)
 {
@@ -115,5 +121,9 @@ SinkDataTag::GetNodeId(){
 void
 SinkDataTag::SetNodeId(uint32_t id){
 m_nodeID = id;
+}
+void
+SinkDataTag::SetTimestamp(Time delay){
+  m_timestamp=delay;
 }
 } /* namespace ns3 */

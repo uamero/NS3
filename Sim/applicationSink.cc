@@ -34,7 +34,7 @@ ApplicationSink::GetInstanceTypeId () const
 
 ApplicationSink::ApplicationSink ()
 {
-  m_broadcast_time = MilliSeconds (100); //every 100ms
+  m_broadcast_time = Seconds (10); //every 100ms
   m_packetSize = 10; //10 bytes
   m_Tiempo_de_reenvio = Seconds (1); //Tiempo para reenviar los paquetes ACK
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
@@ -108,18 +108,19 @@ ApplicationSink::BroadcastInformation ()
            it != m_Tabla_paquetes_ACK.end (); it++)
         {
           Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
-
+          //std::cout << "Ultimo envio: " << Ultimo_Envio.GetSeconds () << std::endl;
           if (it->NumeroDeEnvios < 3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
               it->NumeroDeEnvios += 1;
               m_wifiDevice->Send (it->m_packet, Mac48Address::GetBroadcast (), 0x88dc);
               it->Tiempo_ultimo_envio = Now ();
-              std::cout << "Envie paquete sink" << std::endl;
+              //std::cout << "Envie paquete sink" << std::endl;
               //Simulator::Stop();
               break;
             }
         }
+      //ImprimeTabla ();
     }
 
   //Broadcast the packet as WSMP (0x88dc)
@@ -131,8 +132,6 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
                                 const Address &sender)
 {
   uint32_t NIC = 0;
-  //std::cout << "Me quedo aqui sink 1 >>>" << std::endl;
-
   for (std::list<ST_bufferOfCannels_sink>::iterator it = m_bufferSink.begin ();
        it != m_bufferSink.end (); it++)
     {
@@ -140,7 +139,10 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
       //         << device->GetIfIndex () << " | " << NIC << std::endl;
       if (NIC == device->GetIfIndex ())
         {
-
+          SecundariosDataTag sec;
+          packet->PeekPacketTag (sec);
+          /*std::cout << "SEQN: " << sec.GetSEQNumber ()
+                    << " El paquete llego corectamente: " << Now ().GetSeconds () << std::endl;*/
           ST_PacketInBuffer_sink newPacket;
           newPacket.m_packet = packet->Copy ();
           newPacket.m_TimeTosavedOnBuffer = Now ();
@@ -150,7 +152,9 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
       NIC++;
     }
 
-  CheckBuffer ();
+  //CheckBuffer ();
+  Simulator::Schedule (Seconds ((double) (8 * 1024) / (m_mode.GetDataRate (20))),
+                       &ApplicationSink::CheckBuffer, this);
   //std::cout << "Me quedo aqui sink 1 " << GetNode()->GetId()<< std::endl;
   //std::cout << "Aqui me quedo 4 #######################333" << std::endl;
   //m_BufferA.push_back (packet->Copy());
@@ -177,6 +181,7 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
 
   return true;
 }
+
 void
 ApplicationSink::ReadPacketOnBuffer ()
 {
@@ -213,31 +218,45 @@ ApplicationSink::ReadPacketOnBuffer ()
 
               packet->CopyData (buffer, packet->GetSize ());
 
-              std::string ruta = std::string (buffer, buffer + packet->GetSize ())+ "," +
-                  std::to_string (GetNode ()->GetId ());
-              for(uint32_t i=0;i<ruta.length();i++){
-                std::cout <<ruta[i];
-              }
-              std::cout << std::endl;    
+              std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
+                                 std::to_string (GetNode ()->GetId ());
+              for (uint32_t i = 0; i < ruta.length (); i++)
+                {
+                  std::cout << ruta[i];
+                }
+              std::cout << std::endl;
               //std::cout << "Recibi paquete en sink : " << ruta << std::endl;
-              std::cout << "Recibi paquete en sink : " << Now().GetSeconds()<< std::endl;
+              /*std::cout << "Recibi paquete en sink : " << Now ().GetSeconds ()
+                        << "SEQN: " << SecundariosTag.GetSEQNumber () << " El retardo es: "
+                        << SecundariosTag.GetTimestamp ().GetSeconds () +
+                               TimeInThisNode.GetSeconds ()
+                        << std::endl;*/
               Ptr<Packet> PacketToReSend = Create<Packet> ();
               SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
               SinkTag.SetSG (m_SigmaG);
               SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
-
+              SinkTag.SetTimestamp (SecundariosTag.GetTimestamp () + TimeInThisNode);
               PacketToReSend->AddPacketTag (SinkTag);
               if (Entregado (SecundariosTag.GetSEQNumber ()))
                 {
+                 // std::cout << "Recibi paquete en sink : " << SinkTag.GetSEQNumber () << " | "
+                  //          << Now ().GetSeconds () << std::endl;
                   break; //Si el paquete ya está entregado no se envia el paquete
                 }
               if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber ()))
                 {
+                  //ImprimeTabla();
+                  //std::cout << "Recibi paquete en sink222 : " << SinkTag.GetSEQNumber () << " | "
+                  //          << Now ().GetSeconds () << std::endl;
                   Guarda_Paquete_para_ACK (
                       PacketToReSend,
                       TimeInThisNode); //En este punto se almacena en memoria el paquete
-                  m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (NIC));
-                  m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (), 0x88dc);
+                  //m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (NIC));
+                  //m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (), 0x88dc);
+                }
+              else
+                {
+                  break;
                 }
 
               // std::cout << "Aqui me quedo Envio paquete2" << std::endl;
@@ -245,6 +264,11 @@ ApplicationSink::ReadPacketOnBuffer ()
               break; //este break rompe el for que itera sobre los buffer de los canales
             }
         }
+      else
+        {
+          (*it).m_visitado = true;
+        }
+      NIC++;
     }
 }
 void
@@ -261,7 +285,7 @@ ApplicationSink::CheckBuffer ()
       //std::cout << "Aqui me quedo CheckBuffer2" << std::endl;
       ReiniciaVisitados (); //si ya fueron visitados se reinician de nuevo las visitas al primer canal (es de forma circular)
     }
-  Simulator::Schedule (Now () + Seconds (8 * 100 / (m_mode.GetDataRate (10))),
+  Simulator::Schedule (m_broadcast_time + Seconds (8 * 100 / (m_mode.GetDataRate (10))),
                        &ApplicationSink::CheckBuffer, this);
   //std::cout << "Aqui me quedo CheckBuffer2##" << std::endl;
 }
@@ -352,10 +376,10 @@ void
 ApplicationSink::Guarda_Paquete_para_ACK (Ptr<Packet> paquete, Time timeBuff)
 {
   ST_Reenvios_Sink ACK;
-  ACK.m_packet = paquete;
+  ACK.m_packet = paquete->Copy ();
   ACK.retardo = timeBuff;
   ACK.NumeroDeEnvios = 0;
-  ACK.Tiempo_ultimo_envio = Seconds (0);
+  ACK.Tiempo_ultimo_envio = Now ();
   m_Tabla_paquetes_ACK.push_back (ACK);
 }
 
@@ -399,7 +423,7 @@ void
 ApplicationSink::ImprimeTabla ()
 {
   std::cout << "\t ********Paquetes recibidos en el Nodo " << GetNode ()->GetId () << " *********"
-            << std::endl;
+            << Now ().GetSeconds () << std::endl;
   for (std::list<ST_Reenvios_Sink>::iterator it = m_Tabla_paquetes_ACK.begin ();
        it != m_Tabla_paquetes_ACK.end (); it++)
     {

@@ -54,7 +54,7 @@ SecundariosDataTag::GetInstanceTypeId (void) const
 uint32_t
 SecundariosDataTag::GetSerializedSize (void) const
 {
-  return sizeof (ns3::Time) + sizeof (uint32_t) + sizeof (double) + sizeof (uint64_t) +
+  return sizeof (ns3::Time) + sizeof (uint32_t) +sizeof (uint32_t)+ sizeof (double) + sizeof (uint64_t) +
          sizeof (uint64_t);
 }
 /**
@@ -67,6 +67,7 @@ SecundariosDataTag::Serialize (TagBuffer i) const
   i.WriteDouble (m_timestamp.GetDouble ());
   //Then we store the node ID
   i.WriteU32 (m_nodeId);
+  i.WriteU32 (m_nodeIdPrev);
   i.WriteU64 (m_SEQNumber);
   i.WriteU64 (m_chanels);
   i.WriteDouble (m_SL);
@@ -81,6 +82,8 @@ SecundariosDataTag::Deserialize (TagBuffer i)
   m_timestamp = Time::FromDouble (i.ReadDouble (), Time::NS);
   //Extraemos el nodo del nodo creador del paquete
   m_nodeId = i.ReadU32 ();
+  
+  m_nodeIdPrev = i.ReadU32 ();
   //Se extrae el numero de secuencia del paquete
   m_SEQNumber = i.ReadU64 ();
 
@@ -96,13 +99,18 @@ SecundariosDataTag::Deserialize (TagBuffer i)
 void 
 SecundariosDataTag::Print (std::ostream &os) const
 {
-  os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: ("<<m_SEQNumber<< ")" <<"\t Retardo total: (" << (Now() - m_timestamp).GetSeconds()  << ")" << " Satisfaccíon L: (" << m_SL << ")" << std::endl;
+  os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: ("<<m_SEQNumber<< ")" <<"\t Retardo total: (" << m_timestamp.GetSeconds()  << ")" << " Satisfaccíon L: (" << m_SL << ")" << std::endl;
 }
 
 uint32_t
 SecundariosDataTag::GetNodeId ()
 {
   return this->m_nodeId;
+}
+uint32_t
+SecundariosDataTag::GetNodeIdPrev ()
+{
+  return this->m_nodeIdPrev;
 }
 
 Time
@@ -138,9 +146,14 @@ SecundariosDataTag::SetSL (double SL)
   m_SL = SL;
 }
 void
-SecundariosDataTag::SetNodeId (uint32_t node_id) /*> Id del nodo que envia*/
+SecundariosDataTag::SetNodeId (uint32_t node_id) /*> Id del nodo que creo el paquete*/
 {
   this->m_nodeId = node_id;
+}
+void
+SecundariosDataTag::SetNodeIdPrev (uint32_t node_idPrev) /*> Id del nodo previo que envia*/
+{
+  this->m_nodeIdPrev = node_idPrev;
 }
 /*void
 SecundariosDataTag::SetTimestamp (Time t)

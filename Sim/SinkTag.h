@@ -27,6 +27,7 @@ public:
   u_long GetSEQNumber ();
   double GetSG();
   uint32_t GetNodeId();
+  Time GetTimestamp();
   //void SetPosition (Vector pos);
   void SetTimestamp (Time t);
   void SetSEQNumber (u_long number);
@@ -39,6 +40,7 @@ private:
   u_long m_SEQNumber; /**> Numero de secuencia del paquete del cual se envia el ACK*/
   double m_SG; /**> Valor de la satisfacción global*/
   uint32_t m_nodeID;
+  Time m_timestamp; /**> Tiempo en el que el paquete se creó*/
 };
 } // namespace ns3
 
