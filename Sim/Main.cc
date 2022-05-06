@@ -283,13 +283,13 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 5; //Numero de nodos alarmados en la red
-  uint32_t n_SecundariosB = 60; //Numero de nodos ruteadores en la red
+  uint32_t n_SecundariosA = 20; //Numero de nodos alarmados en la red
+  uint32_t n_SecundariosB = 7; //Numero de nodos ruteadores en la red
   uint32_t n_Primarios = 0; //Numero de estaciones base secundarias en la red
   uint32_t n_Sink = 1; //Numero de nodos Sink en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   n_channels = 1; // Numero de canales, por default 8
-  uint32_t Semilla_Sim = 3702340546;
+  uint32_t Semilla_Sim = 925446085;
   uint32_t escenario =
       3; //escenario 1.- edificio con muros 2.-Escenario en exteriores con obs. 3.- Escenario exteriores sin obstaculos
 
@@ -587,7 +587,7 @@ main (int argc, char *argv[])
           std::cout << "No ha seleccionado el modelo de movilidad a utilizar" << std::endl;
           break;
         }
-
+      
       mobilit.Install (SecundariosB);
       mobilit.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
       mobilit.Install (SecundariosA);
@@ -596,6 +596,12 @@ main (int argc, char *argv[])
           Ptr<ConstantPositionMobilityModel> SA_Pos = DynamicCast<ConstantPositionMobilityModel> (
               SecundariosA.Get (0)->GetObject<MobilityModel> ());
           SA_Pos->SetPosition (Vector (500, 500, 0));
+           /*Ptr<ConstantPositionMobilityModel> SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
+              SecundariosB.Get (0)->GetObject<MobilityModel> ());
+          SB_Pos->SetPosition (Vector (250, 250, 0));
+           SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
+              SecundariosB.Get (1)->GetObject<MobilityModel> ());
+          SB_Pos->SetPosition (Vector (426, 426, 0));*/
         }
       else if (n_SecundariosA == 2)
         {
@@ -764,9 +770,11 @@ main (int argc, char *argv[])
 
       YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (wifiChannel.Create ());
+      //https://www.nsnam.org/docs/release/3.32/doxygen/classns3_1_1_yans_wifi_phy.html
+      wifiPhy.Set("ChannelWidth",UintegerValue(20));
       wifiPhy.Set ("TxPowerStart", DoubleValue (5)); //5
-      wifiPhy.Set ("TxPowerEnd", DoubleValue (33)); //33
-      wifiPhy.Set ("TxPowerLevels", UintegerValue (8)); //8
+      wifiPhy.Set ("TxPowerEnd", DoubleValue (10)); //33
+      wifiPhy.Set ("TxPowerLevels", UintegerValue (2)); //8
       wifi.Install (wifiPhy, wifiMac,
                     SecundariosA); //Device para comunicar a los nodos tipo A y B
       wifi.Install (wifiPhy, wifiMac,

@@ -401,7 +401,7 @@ CustomApplication::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packe
         }
       NIC++;
     }
-  Simulator::Schedule (Seconds ((double) (8 * 1000) / (m_mode.GetDataRate (20))),
+  Simulator::Schedule (Seconds ((double) (8 * 1024) / (m_mode.GetDataRate (20))),
                        &CustomApplication::CheckBuffer, this);
   //std::cout << "Aqui me quedo 4 #######################333" << std::endl;
   //m_BufferA.push_back (packet->Copy());
@@ -576,6 +576,8 @@ CustomApplication::ReadPacketOnBuffer ()
               if (NIC != m_n_channels && NIC != m_n_channels + 1 &&
                   VerificaCanal (SecundariosTag.GetChanels ()))
                 { // se verifica si la interfaz por la que llego el paquete no es de los usuarios primarios o del Sink ademas de verificar si el canal por el que se recibe esta libre
+                 //Imprimebuffers();
+                 //break;
                   uint8_t *buffer = new uint8_t[packet->GetSize ()];
 
                   packet->CopyData (buffer, packet->GetSize ());

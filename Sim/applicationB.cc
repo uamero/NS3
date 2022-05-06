@@ -228,6 +228,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
         {
           // std::cout << "Aqui me quedo 3######################################> "
           //       << device->GetIfIndex () << " | " << NIC << std::endl;
+          
           SecundariosDataTag sec;
           ST_PacketInBufferB newPacket;
           newPacket.m_packet = packet->Copy ();
