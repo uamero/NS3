@@ -20,11 +20,13 @@ SecundariosDataTag::SecundariosDataTag ()
   creando un tag predefinido con las siguientes condiciones*/
   //m_timestamp = Simulator::Now ();
   
-  m_timestamp = Time(0);
+  m_timestamp = Time (0);
   m_nodeId = -1;
   m_SEQNumber = 1;
   m_chanels = 0;
   m_SL = 1;
+  m_BufferRoute = new uint8_t[0];
+  m_SizeBufferRoute = 0;
 }
 
 SecundariosDataTag::~SecundariosDataTag ()
@@ -37,7 +39,7 @@ SecundariosDataTag::GetTypeId (void)
 {
   static TypeId tid =
       TypeId ("ns3::SecundariosDataTag").SetParent<Tag> ().AddConstructor<SecundariosDataTag> ();
-  return tid; 
+  return tid;
 }
 TypeId
 SecundariosDataTag::GetInstanceTypeId (void) const
@@ -54,8 +56,8 @@ SecundariosDataTag::GetInstanceTypeId (void) const
 uint32_t
 SecundariosDataTag::GetSerializedSize (void) const
 {
-  return sizeof (ns3::Time) + sizeof (uint32_t) +sizeof (uint32_t)+ sizeof (double) + sizeof (uint64_t) +
-         sizeof (uint64_t);
+  return /*sizeof (ns3::Time)*/sizeof(double) + sizeof (uint32_t) + sizeof (uint32_t) + sizeof (double) +
+         sizeof (uint64_t) + sizeof (uint64_t) + sizeof (uint32_t) + sizeof (uint8_t *)+m_SizeBufferRoute;
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -71,6 +73,8 @@ SecundariosDataTag::Serialize (TagBuffer i) const
   i.WriteU64 (m_SEQNumber);
   i.WriteU64 (m_chanels);
   i.WriteDouble (m_SL);
+  i.WriteU32(m_SizeBufferRoute);
+  i.Write (m_BufferRoute, m_SizeBufferRoute);
 }
 /** This function reads data from a buffer and store it in class's instance variables.
  */
@@ -82,7 +86,7 @@ SecundariosDataTag::Deserialize (TagBuffer i)
   m_timestamp = Time::FromDouble (i.ReadDouble (), Time::NS);
   //Extraemos el nodo del nodo creador del paquete
   m_nodeId = i.ReadU32 ();
-  
+
   m_nodeIdPrev = i.ReadU32 ();
   //Se extrae el numero de secuencia del paquete
   m_SEQNumber = i.ReadU64 ();
@@ -90,16 +94,24 @@ SecundariosDataTag::Deserialize (TagBuffer i)
   m_chanels = i.ReadU64 ();
 
   m_SL = i.ReadDouble ();
+
+  m_SizeBufferRoute = i.ReadU32 ();
+
+  i.Read (m_BufferRoute, m_SizeBufferRoute);
 }
 /**
  * This function can be used with ASCII traces if enabled. 
  */
 
 //Your accessor and mutator functions
-void 
+void
 SecundariosDataTag::Print (std::ostream &os) const
 {
-  os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: ("<<m_SEQNumber<< ")" <<"\t Retardo total: (" << m_timestamp.GetSeconds()  << ")" << " Satisfaccíon L: (" << m_SL << ")" << std::endl;
+  std::string ruta = std::string (m_BufferRoute, m_BufferRoute + m_SizeBufferRoute);
+  os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: (" << m_SEQNumber << ")"
+     << "\t Retardo total: (" << m_timestamp.GetSeconds () << ")"
+     << " Satisfaccíon L: (" << m_SL << ")"
+     << " Ruta: " << ruta << std::endl;
 }
 
 uint32_t
@@ -118,9 +130,29 @@ SecundariosDataTag::GetTimestamp ()
 {
   return this->m_timestamp;
 }
-
-void 
-SecundariosDataTag::SetTimestamp(Time timeStamp){
+uint8_t *
+SecundariosDataTag::GetBufferRoute ()
+{
+  return m_BufferRoute;
+}
+uint32_t
+SecundariosDataTag::GetSizeBufferRoute ()
+{
+  return m_SizeBufferRoute;
+}
+void
+SecundariosDataTag::SetSizeBufferRoute (uint32_t SizeBuffer)
+{
+  m_SizeBufferRoute = SizeBuffer;
+}
+void
+SecundariosDataTag::SetBufferRoute (uint8_t *buffer)
+{
+  m_BufferRoute = buffer;
+}
+void
+SecundariosDataTag::SetTimestamp (Time timeStamp)
+{
   m_timestamp = timeStamp;
 }
 

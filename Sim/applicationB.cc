@@ -37,7 +37,7 @@ CustomApplicationBnodes::GetInstanceTypeId () const
 
 CustomApplicationBnodes::CustomApplicationBnodes ()
 {
-  m_broadcast_time = Seconds (10); //every 100ms
+  m_broadcast_time = Seconds (20); //every 100ms
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   //m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_mode = WifiMode ("OfdmRate54Mbps");
@@ -161,8 +161,11 @@ CustomApplicationBnodes::BroadcastInformation ()
                           newPacket.m_Send = true;
                           buffer->m_PacketAndTime.push_back (newPacket);
 
-                          //std::cout<<"Entro aqui B broadcast "<<GetNode()->GetId()<<" | "<<std::endl;
-
+                          /*std::cout << "#BufferB" << GetNode ()->GetId () << " : " << NIC
+                                    << " Size: " << buffer->m_PacketAndTime.size ()
+                                    << " Time: " << Now ().GetSeconds ()
+                                    << " Paquetes a reenviar: " << m_Paquetes_A_Reenviar.size ()
+                                    << std::endl;*/
                           break; // este break rompe la iteración para los canales
                         }
                       NIC++;
@@ -228,7 +231,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
         {
           // std::cout << "Aqui me quedo 3######################################> "
           //       << device->GetIfIndex () << " | " << NIC << std::endl;
-          
+
           SecundariosDataTag sec;
           ST_PacketInBufferB newPacket;
           newPacket.m_packet = packet->Copy ();
@@ -242,9 +245,11 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
               //std::cout <<GetNode()->GetId()<<" número de colisiones: "<<m_collissions<<" NIC: "<<NIC<<std::endl;
               break;
             }
+          Simulator::Schedule (Seconds ((8.0 * 1024.0) / (m_mode.GetDataRate (20))),
+                               &CustomApplicationBnodes::CheckBuffer, this);
           it->m_PacketAndTime.push_back (newPacket);
-          /*std::cout << "Nodo: " << GetNode ()->GetId () << " Recibo paquete correctamente B"
-            << Now ().GetSeconds () << "SEQN: "<< sec.GetSEQNumber()<< std::endl;*/
+         /* std::cout << "Nodo: " << GetNode ()->GetId () << " Recibo paquete correctamente B"
+                    << Now ().GetSeconds () << "SEQN: " << sec.GetSEQNumber () << std::endl;*/
           /*std::cout << "Aqui se guarda el retardo es: " << sec.GetTimestamp ().GetSeconds ()
                     << std::endl;*/
           //Let's see if this packet is intended to this node
@@ -264,9 +269,7 @@ CustomApplicationBnodes::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet>
 
   //CheckBuffer ();
   //ImprimeTabla();
-
-  Simulator::Schedule (Seconds ((8.0 * 1024.0) / (m_mode.GetDataRate (20))),
-                       &CustomApplicationBnodes::CheckBuffer, this);
+  //Imprimebuffers();
   //uint8_t *buffer = new uint8_t[packet->GetSize ()];
   //packet->CopyData (buffer, packet->GetSize ());
   //std::string ruta = std::string (buffer, buffer + packet->GetSize ());
@@ -336,28 +339,42 @@ CustomApplicationBnodes::SendPacket ()
                 {
                   // std::cout << "Aqui me quedo 3" << std::endl;
 
-                  uint8_t *buffer = new uint8_t[packet->GetSize ()];
-                  packet->CopyData (buffer, packet->GetSize ());
-                  std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
-                                     std::to_string (GetNode ()->GetId ());
-                  Ptr<Packet> PacketToReSend =
-                      Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
+                  /*uint8_t *buffer = new uint8_t[packet->GetSize ()];
+                  packet->CopyData (buffer, packet->GetSize ());*/
+                  std::string ruta = std::string (SecundariosTag.GetBufferRoute (),
+                                                  SecundariosTag.GetBufferRoute () +
+                                                      SecundariosTag.GetSizeBufferRoute ()) +
+                                     "," + std::to_string (GetNode ()->GetId ());
+                  /*std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
+                                     std::to_string (GetNode ()->GetId ());*/
 
+                  /*Ptr<Packet> PacketToReSend =
+                      Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());*/
+                  //SecundariosTag.Print (std::cout<<"1> ");
+                  //std::cout << "Aqui me quedoBB1:" << std::endl;
                   SecundariosTag.SetTimestamp (TimeInThisNode + SecundariosTag.GetTimestamp ());
+                  SecundariosTag.SetBufferRoute ((uint8_t *) ruta.c_str ());
+                  SecundariosTag.SetSizeBufferRoute (ruta.length ());
+                  //std::cout <<"Salgo de aqui"<<std::endl;
                   /*std::cout << Now ().GetSeconds () << " | "
                             << "Nodo: " << GetNode ()->GetId ()
                             << " El retardo de este paquete enviado es: "
                             << SecundariosTag.GetTimestamp ().GetSeconds ()
                             << " Disponibilidad: " << m_Canales_Para_Utilizar.size ()
                             << "SEQN: " << SecundariosTag.GetSEQNumber () << std::endl;*/
-                  PacketToReSend->AddPacketTag (SecundariosTag);
+                 //SecundariosTag.Print (std::cout);
+                 // packet->RemoveAllPacketTags();
+                  packet->ReplacePacketTag (SecundariosTag);
+                  //std::cout << "Aqui me quedoBB2:" << std::endl;
+
+                  //PacketToReSend->AddPacketTag (SecundariosTag);
                   if (Entregado (SecundariosTag.GetSEQNumber ()))
                     {
                       break; //Si el paquete ya está entregado no se envia el paquete
                     }
                   m_wifiDevice = DynamicCast<WifiNetDevice> (
                       GetNode ()->GetDevice (SecundariosTag.GetChanels ()));
-                  m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (),
+                  m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (),
                                       0x88dc); //aqui se hace el broadcast en un canal
                   //std::cout << "Aqui me quedo Fin de SendPacket " << std::endl;
                   break;
@@ -434,13 +451,13 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
               if (NIC != m_n_channels && NIC != m_n_channels + 1 &&
                   VerificaCanal (SecundariosTag.GetChanels ()))
                 {
-                  /* std::cout << "#BufferB" << GetNode ()->GetId () << " : " << NIC
+                  /*std::cout << "#BufferB" << GetNode ()->GetId () << " : " << NIC
                             << " Size: " << it->m_PacketAndTime.size ()
                             << " Time: " << Now ().GetSeconds () << std::endl;*/
                   //std::cout<<"######Aquii "<<TimeInThisNode.GetMilliSeconds()<<std::endl;
-                  uint8_t *buffer = new uint8_t[packet->GetSize ()];
+                  /*uint8_t *buffer = new uint8_t[packet->GetSize ()];
 
-                  packet->CopyData (buffer, packet->GetSize ());
+                  packet->CopyData (buffer, packet->GetSize ());*/
 
                   /*if (send)
                     { // se verifica si el paquete ya está listo para ser enviado o se debe leer
@@ -469,14 +486,16 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
                   if (!send)
                     {
 
-                      std::string ruta = std::string (buffer, buffer + packet->GetSize ());
+                      std::string ruta = std::string (SecundariosTag.GetBufferRoute (),
+                                                      SecundariosTag.GetBufferRoute () +
+                                                          SecundariosTag.GetSizeBufferRoute ());
 
                       for (std::list<uint32_t>::iterator FreeChIt =
                                m_Canales_Para_Utilizar.begin ();
                            FreeChIt != m_Canales_Para_Utilizar.end (); FreeChIt++)
                         {
-                          Ptr<Packet> PacketToReSend =
-                              Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());
+                          /*Ptr<Packet> PacketToReSend =
+                              Create<Packet> ((uint8_t *) ruta.c_str (), ruta.length ());*/
 
                           SecundariosTag.SetChanels ((*FreeChIt));
 
@@ -488,8 +507,10 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
                           //SecundariosTag.SetSL(m_satisfaccionL);
                           SecundariosTag.SetSL (rand->GetValue (0, 1));
                           SecundariosTag.SetNodeIdPrev (GetNode ()->GetId ());
-
-                          PacketToReSend->AddPacketTag (SecundariosTag);
+                          //std::cout << "Aqui me quedoB1:" << std::endl;
+                          //PacketToReSend->AddPacketTag (SecundariosTag);
+                          packet->ReplacePacketTag (SecundariosTag);
+                         //std::cout << "Aqui me quedoB2:" << std::endl;
                           if (Entregado (SecundariosTag.GetSEQNumber ()))
                             {
                               break; //Si el paquete ya está entregado no se envia el paquete
@@ -502,7 +523,7 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
                               //std::cout << "El retardo en el nodo B" << GetNode ()->GetId ()
                               //        << " Es: " << m_retardo_acumulado << std::endl;
                               Guarda_Paquete_reenvio (
-                                  PacketToReSend,
+                                  packet,
                                   TimeInThisNode); //En este punto se almacena en memoria el paquete
                             }
                           else
@@ -519,7 +540,7 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
                               if (_NIC == (*FreeChIt))
                                 { // se localiza el buffer en el que se guardara el paquete
                                   ST_PacketInBufferB newPacket;
-                                  newPacket.m_packet = PacketToReSend->Copy ();
+                                  newPacket.m_packet = packet->Copy ();
                                   newPacket.m_TimeTosavedOnBuffer = Now ();
                                   newPacket.m_Send =
                                       true; //se coloca en true para enviar el paquete
@@ -600,6 +621,10 @@ CustomApplicationBnodes::ReadPacketOnBuffer ()
                 {
                   //std::cout << "Si confirmo la entrega" << std::endl;
                   //Imprimebuffers ();
+                  std::string ruta =
+                      std::string (SinkTag.GetBufferRoute (),
+                                   SinkTag.GetBufferRoute () + SinkTag.GetSizeBufferRoute ());
+                  //std::cout << "Aqui me quedo3" << std::endl;
                   ConfirmaEntrega (SinkTag.GetSEQNumber ());
                   //Imprimebuffers();
                   break;

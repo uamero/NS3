@@ -28,19 +28,25 @@ public:
   double GetSG();
   uint32_t GetNodeId();
   Time GetTimestamp();
+  uint8_t* GetBufferRoute();
+  uint32_t GetSizeBufferRoute();
   //void SetPosition (Vector pos);
   void SetTimestamp (Time t);
   void SetSEQNumber (u_long number);
   void SetSG(double sg);
   void SetNodeId(uint32_t id);
+  void SetBufferRoute(uint8_t* buffer);
+  void SetSizeBufferRoute(uint32_t SizeBuffer);
   SinkDataTag ();
   virtual ~SinkDataTag ();
-  
+
 private:
-  u_long m_SEQNumber; /**> Numero de secuencia del paquete del cual se envia el ACK*/
+  uint64_t m_SEQNumber; /**> Numero de secuencia del paquete del cual se envia el ACK*/
   double m_SG; /**> Valor de la satisfacción global*/
   uint32_t m_nodeID;
   Time m_timestamp; /**> Tiempo en el que el paquete se creó*/
+  uint8_t *m_BufferRoute;
+  uint32_t m_SizeBufferRoute;
 };
 } // namespace ns3
 

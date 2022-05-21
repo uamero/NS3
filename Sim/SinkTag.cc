@@ -19,6 +19,11 @@ SinkDataTag::SinkDataTag ()
   creando un tag predefinido con las siguientes condiciones*/
   m_SEQNumber = 1;
   m_SG = 0;
+  m_timestamp = Time (0);
+  m_BufferRoute = new uint8_t[0];
+  m_SizeBufferRoute = 0;
+  m_SG = 0;
+  // std::cout<<"Si salgo"<<std::endl;
 }
 
 SinkDataTag::~SinkDataTag ()
@@ -32,11 +37,14 @@ SinkDataTag::GetTypeId (void)
   static TypeId tid = TypeId ("ns3::SinkDataTag").SetParent<Tag> ().AddConstructor<SinkDataTag> ();
   return tid;
 }
-void 
+void
 SinkDataTag::Print (std::ostream &os) const
 {
+  std::string ruta = std::string (m_BufferRoute, m_BufferRoute + m_SizeBufferRoute);
+  os << "Sink Data Tag--- from Node :" << m_nodeID << "\t SEQN: (" << m_SEQNumber << ")"
+     << " Satisfación G:  (" << m_SG << ")"
+     << " Ruta: " << ruta << std::endl;
   
-  os << "Sink Data Tag--- from Node :" << m_nodeID <<  "\t SEQN: (" << m_SEQNumber  << ")" << " Satisfación G:  (" << m_SG << ")" << std::endl;;
 }
 
 TypeId
@@ -54,7 +62,8 @@ SinkDataTag::GetInstanceTypeId (void) const
 uint32_t
 SinkDataTag::GetSerializedSize (void) const
 {
-  return sizeof (u_long) + sizeof (double) + sizeof(uint32_t) +sizeof(ns3::Time);
+  return sizeof (uint64_t) + sizeof (double) + sizeof (uint32_t) + sizeof (ns3::Time) +
+         sizeof (uint32_t) + sizeof (uint8_t *) + m_SizeBufferRoute;
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -65,8 +74,10 @@ SinkDataTag::Serialize (TagBuffer i) const
 
   i.WriteU64 (m_SEQNumber);
   i.WriteDouble (m_SG);
-  i.WriteU32(m_nodeID);
-  i.WriteDouble(m_timestamp.GetDouble());
+  i.WriteU32 (m_nodeID);
+  i.WriteDouble (m_timestamp.GetDouble ());
+  i.WriteU32 (m_SizeBufferRoute);
+  i.Write (m_BufferRoute, m_SizeBufferRoute);
 }
 /** This function reads data from a buffer and store it in class's instance variables.
  */
@@ -80,9 +91,13 @@ SinkDataTag::Deserialize (TagBuffer i)
   //Se extrae la satisfacción global
   m_SG = i.ReadDouble ();
   //Se lee el Id del nodo que envia el paquete
-  m_nodeID = i.ReadU32();
+  m_nodeID = i.ReadU32 ();
 
-  m_timestamp = Time::FromDouble(i.ReadDouble(),Time::NS);
+  m_timestamp = Time::FromDouble (i.ReadDouble (), Time::NS);
+
+  m_SizeBufferRoute = i.ReadU32 ();
+
+  i.Read (m_BufferRoute, m_SizeBufferRoute);
 }
 /**
  * This function can be used with ASCII traces if enabled. 
@@ -94,8 +109,9 @@ SinkDataTag::GetSEQNumber ()
 
   return this->m_SEQNumber;
 }
-Time 
-SinkDataTag::GetTimestamp(){
+Time
+SinkDataTag::GetTimestamp ()
+{
   return m_timestamp;
 }
 void
@@ -105,7 +121,7 @@ SinkDataTag::SetSEQNumber (u_long number)
 }
 
 double
-SinkDataTag::GetSG()
+SinkDataTag::GetSG ()
 {
   return m_SG;
 }
@@ -115,15 +131,38 @@ SinkDataTag::SetSG (double sg)
   m_SG = sg;
 }
 uint32_t
-SinkDataTag::GetNodeId(){
+SinkDataTag::GetNodeId ()
+{
   return m_nodeID;
 }
 void
-SinkDataTag::SetNodeId(uint32_t id){
-m_nodeID = id;
+SinkDataTag::SetNodeId (uint32_t id)
+{
+  m_nodeID = id;
 }
 void
-SinkDataTag::SetTimestamp(Time delay){
-  m_timestamp=delay;
+SinkDataTag::SetTimestamp (Time delay)
+{
+  m_timestamp = delay;
+}
+uint8_t *
+SinkDataTag::GetBufferRoute ()
+{
+  return m_BufferRoute;
+}
+uint32_t
+SinkDataTag::GetSizeBufferRoute ()
+{
+  return m_SizeBufferRoute;
+}
+void
+SinkDataTag::SetSizeBufferRoute (uint32_t SizeBuffer)
+{
+  m_SizeBufferRoute = SizeBuffer;
+}
+void
+SinkDataTag::SetBufferRoute (uint8_t *buffer)
+{
+  m_BufferRoute = buffer;
 }
 } /* namespace ns3 */

@@ -109,7 +109,7 @@ ApplicationSink::BroadcastInformation ()
         {
           Time Ultimo_Envio = Now () - it->Tiempo_ultimo_envio;
           //std::cout << "Ultimo envio: " << Ultimo_Envio.GetSeconds () << std::endl;
-          if (it->NumeroDeEnvios < 3 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
+          if (it->NumeroDeEnvios < 1 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
               it->NumeroDeEnvios += 1;
@@ -194,6 +194,7 @@ ApplicationSink::ReadPacketOnBuffer ()
       Time TimeInThisNode;
       SecundariosDataTag SecundariosTag;
       SinkDataTag SinkTag;
+      Ptr<Packet> PacketToReSend;
       if (it->m_PacketAndTime.size () != 0 &&
           !(*it)
                .m_visitado) // Se evalua si el buffer visitado esta vacio o bien si no ha sido visitado
@@ -212,39 +213,52 @@ ApplicationSink::ReadPacketOnBuffer ()
           if (packet->PeekPacketTag (SecundariosTag))
             { //Se verifica el paquete recibido sea de nodos secundarios
 
-              SecundariosTag.Print (std::cout);
+              //uint8_t *buffer = new uint8_t[packet->GetSize ()];
 
-              uint8_t *buffer = new uint8_t[packet->GetSize ()];
+              //packet->CopyData (buffer, packet->GetSize ());
 
-              packet->CopyData (buffer, packet->GetSize ());
-
-              std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
-                                 std::to_string (GetNode ()->GetId ());
-              for (uint32_t i = 0; i < ruta.length (); i++)
-                {
-                  std::cout << ruta[i];
-                }
-              std::cout << std::endl;
               //std::cout << "Recibi paquete en sink : " << ruta << std::endl;
               /*std::cout << "Recibi paquete en sink : " << Now ().GetSeconds ()
                         << "SEQN: " << SecundariosTag.GetSEQNumber () << " El retardo es: "
                         << SecundariosTag.GetTimestamp ().GetSeconds () +
                                TimeInThisNode.GetSeconds ()
                         << std::endl;*/
-              Ptr<Packet> PacketToReSend = Create<Packet> ();
-              SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
-              SinkTag.SetSG (m_SigmaG);
-              SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
-              SinkTag.SetTimestamp (SecundariosTag.GetTimestamp () + TimeInThisNode);
-              PacketToReSend->AddPacketTag (SinkTag);
+
               if (Entregado (SecundariosTag.GetSEQNumber ()))
                 {
-                 // std::cout << "Recibi paquete en sink : " << SinkTag.GetSEQNumber () << " | "
+                  // std::cout << "Recibi paquete en sink : " << SinkTag.GetSEQNumber () << " | "
                   //          << Now ().GetSeconds () << std::endl;
                   break; //Si el paquete ya está entregado no se envia el paquete
                 }
               if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber ()))
                 {
+                  //SecundariosTag.Print (std::cout);
+                  PacketToReSend = Create<Packet> ();
+                  std::string ruta = std::string (SecundariosTag.GetBufferRoute (),
+                                                  SecundariosTag.GetBufferRoute () +
+                                                      SecundariosTag.GetSizeBufferRoute ()) +
+                                     "," + std::to_string (GetNode ()->GetId ());
+                  //std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
+                  //                   std::to_string (GetNode ()->GetId ());
+                  
+                 /* for (uint32_t i = 0; i < ruta.length (); i++)
+                    {
+                      std::cout << ruta[i];
+                    }
+                  std::cout << std::endl;*/
+                  
+                  SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
+                  SinkTag.SetSG (m_SigmaG);
+                  SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
+                  SinkTag.SetTimestamp (SecundariosTag.GetTimestamp () + TimeInThisNode);
+                  SinkTag.SetSizeBufferRoute(ruta.length()); 
+                  SinkTag.SetBufferRoute((uint8_t*)ruta.c_str());
+
+                  //std::cout<<"Aqui me quedo11:"<<std::endl;
+                  PacketToReSend->AddPacketTag (SinkTag);
+                  packet->AddPacketTag(SinkTag);
+                  //std::cout<<"Aqui me quedo2"<<std::endl;
+
                   //ImprimeTabla();
                   //std::cout << "Recibi paquete en sink222 : " << SinkTag.GetSEQNumber () << " | "
                   //          << Now ().GetSeconds () << std::endl;

@@ -140,7 +140,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
       std::cout << "\tDestination MAC : " << hdr.GetAddr1 () << "\tSource MAC : " << hdr.GetAddr2 ()
                 << std::endl;
 
-      for (NodeContainer::Iterator nodoIT = SB.Begin (); nodoIT != SB.End (); nodoIT++)
+      /*for (NodeContainer::Iterator nodoIT = SB.Begin (); nodoIT != SB.End (); nodoIT++)
         {
           Ptr<MobilityBuildingInfo> MB = (*nodoIT)->GetObject<MobilityBuildingInfo> ();
           Ptr<GaussMarkovMobilityModel> SBn_Pos =
@@ -166,7 +166,7 @@ Rx (std::string context, Ptr<const Packet> packet, uint16_t channelFreqMhz, Wifi
                     << "(" << std::to_string (SAn_Pos->GetPosition ().x) << ","
                     << std::to_string (SAn_Pos->GetPosition ().y) << ","
                     << std::to_string (SAn_Pos->GetPosition ().z) << ")" << std::endl;
-        }
+        }*/
     }
   std::cout << " Termina RX ()1///////////////////" << std::endl;
 }
@@ -283,8 +283,8 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 20; //Numero de nodos alarmados en la red
-  uint32_t n_SecundariosB = 7; //Numero de nodos ruteadores en la red
+  uint32_t n_SecundariosA = 5; //Numero de nodos alarmados en la red
+  uint32_t n_SecundariosB = 20; //Numero de nodos ruteadores en la red
   uint32_t n_Primarios = 0; //Numero de estaciones base secundarias en la red
   uint32_t n_Sink = 1; //Numero de nodos Sink en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
@@ -601,7 +601,8 @@ main (int argc, char *argv[])
           SB_Pos->SetPosition (Vector (250, 250, 0));
            SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
               SecundariosB.Get (1)->GetObject<MobilityModel> ());
-          SB_Pos->SetPosition (Vector (426, 426, 0));*/
+          SB_Pos->SetPosition (Vector (426, 426, 0));
+          el alcance de los nodos es de 103 metros aprox*/
         }
       else if (n_SecundariosA == 2)
         {
@@ -1011,7 +1012,7 @@ main (int argc, char *argv[])
   std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
   //                MakeCallback (&Rx));
-  //Config::Connect (path, MakeCallback (&PhyRxDropTrace));
+ // Config::Connect (path, MakeCallback (&PhyRxDropTrace));
 
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx", MakeCallback (&MacTxTrace));
   //double new_range = 10;

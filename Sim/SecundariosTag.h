@@ -31,6 +31,8 @@ public:
   uint64_t GetChanels ();
   double GetSL(); 
   uint32_t GetNodeIdPrev();
+  uint8_t* GetBufferRoute();
+  uint32_t GetSizeBufferRoute();
   //void SetPosition (Vector pos);
   void SetNodeId (uint32_t node_id); /*> Id del nodo que envia*/
   void SetNodeIdPrev (uint32_t node_idPrev); /*> Id del nodo que envia*/
@@ -38,6 +40,8 @@ public:
   void SetChanels (uint64_t chanels);
   void SetSEQnumber(uint64_t SEQ);
   void SetSL(double SL);
+  void SetBufferRoute(uint8_t* buffer);
+  void SetSizeBufferRoute(uint32_t SizeBuffer);
   SecundariosDataTag ();
   virtual ~SecundariosDataTag ();
 
@@ -48,6 +52,10 @@ private:
   uint64_t m_SEQNumber; /**> Numero de secuencia que identifica al paquete*/
   uint64_t m_chanels;
   double m_SL;//Valor de la satisfacción local previa de este paquete
+  uint8_t *m_BufferRoute;
+  uint32_t m_SizeBufferRoute;
+  //uint8_t *m_BufferRoute2;
+  //uint32_t m_SizeBufferRoute2;
 };
 } // namespace ns3
 
