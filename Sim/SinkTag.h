@@ -39,6 +39,8 @@ public:
   void SetSizeBufferRoute(uint32_t SizeBuffer);
   SinkDataTag ();
   virtual ~SinkDataTag ();
+  uint32_t GetcopiaID();
+  void setCopiaID(uint32_t CopiaID);
 
 private:
   uint64_t m_SEQNumber; /**> Numero de secuencia del paquete del cual se envia el ACK*/
@@ -47,6 +49,7 @@ private:
   Time m_timestamp; /**> Tiempo en el que el paquete se creó*/
   uint8_t *m_BufferRoute;
   uint32_t m_SizeBufferRoute;
+  uint32_t m_CopiaID;
 };
 } // namespace ns3
 

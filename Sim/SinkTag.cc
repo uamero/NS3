@@ -20,9 +20,10 @@ SinkDataTag::SinkDataTag ()
   m_SEQNumber = 1;
   m_SG = 0;
   m_timestamp = Time (0);
-  m_BufferRoute = new uint8_t[0];
-  m_SizeBufferRoute = 0;
+  m_BufferRoute = new uint8_t[5];
+  m_SizeBufferRoute = 5;
   m_SG = 0;
+  m_CopiaID = 0;
   // std::cout<<"Si salgo"<<std::endl;
 }
 
@@ -41,10 +42,10 @@ void
 SinkDataTag::Print (std::ostream &os) const
 {
   std::string ruta = std::string (m_BufferRoute, m_BufferRoute + m_SizeBufferRoute);
-  os << "Sink Data Tag--- from Node :" << m_nodeID << "\t SEQN: (" << m_SEQNumber << ")"
-     << " Satisfación G:  (" << m_SG << ")"
+  os << " Sink Data Tag--- from Node :" << m_nodeID << "\t SEQN: (" << m_SEQNumber << ")"
+     << " Copia: " << m_CopiaID << " Satisfación G:  (" << m_SG << ")"
+     << " Retardo total: (" << m_timestamp.GetSeconds () << ")"
      << " Ruta: " << ruta << std::endl;
-  
 }
 
 TypeId
@@ -62,8 +63,8 @@ SinkDataTag::GetInstanceTypeId (void) const
 uint32_t
 SinkDataTag::GetSerializedSize (void) const
 {
-  return sizeof (uint64_t) + sizeof (double) + sizeof (uint32_t) + sizeof (ns3::Time) +
-         sizeof (uint32_t) + sizeof (uint8_t *) + m_SizeBufferRoute;
+  return sizeof (uint64_t) + sizeof (double) + sizeof (uint32_t) + /*sizeof (ns3::Time)*/sizeof (double) +
+         sizeof (uint32_t) /*+ sizeof (uint8_t *)*/ + m_SizeBufferRoute + sizeof (uint32_t);
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -76,6 +77,7 @@ SinkDataTag::Serialize (TagBuffer i) const
   i.WriteDouble (m_SG);
   i.WriteU32 (m_nodeID);
   i.WriteDouble (m_timestamp.GetDouble ());
+  i.WriteU32 (m_CopiaID);
   i.WriteU32 (m_SizeBufferRoute);
   i.Write (m_BufferRoute, m_SizeBufferRoute);
 }
@@ -95,7 +97,11 @@ SinkDataTag::Deserialize (TagBuffer i)
 
   m_timestamp = Time::FromDouble (i.ReadDouble (), Time::NS);
 
+  m_CopiaID = i.ReadU32 ();
+
   m_SizeBufferRoute = i.ReadU32 ();
+
+  m_BufferRoute = new uint8_t[m_SizeBufferRoute];
 
   i.Read (m_BufferRoute, m_SizeBufferRoute);
 }
@@ -113,6 +119,16 @@ Time
 SinkDataTag::GetTimestamp ()
 {
   return m_timestamp;
+}
+uint32_t
+SinkDataTag::GetcopiaID ()
+{
+  return m_CopiaID;
+}
+void
+SinkDataTag::setCopiaID (uint32_t CopiaID)
+{
+  m_CopiaID = CopiaID;
 }
 void
 SinkDataTag::SetSEQNumber (u_long number)

@@ -59,7 +59,7 @@ public:
   bool
   VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
-  bool Entregado (u_long SEQ);
+  bool Entregado (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   /** \brief Update a neighbor's last contact time, or add a new neighbor
              */
 
@@ -69,7 +69,7 @@ public:
  
   void ConfirmaEntrega(u_long SEQ);
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla(u_long SEQ);
+  bool BuscaSEQEnTabla(u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   void Guarda_Paquete_para_ACK(Ptr<Packet> paquete, Time timeBuff);
   uint32_t m_n_channels;
 private:

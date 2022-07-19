@@ -19,14 +19,15 @@ SecundariosDataTag::SecundariosDataTag ()
   /*Al crear un objeto del tipo SecundariosDataTag se manda a llamar el constructor de clase
   creando un tag predefinido con las siguientes condiciones*/
   //m_timestamp = Simulator::Now ();
-  
+
   m_timestamp = Time (0);
   m_nodeId = -1;
   m_SEQNumber = 1;
   m_chanels = 0;
   m_SL = 1;
-  m_BufferRoute = new uint8_t[0];
-  m_SizeBufferRoute = 0;
+  m_BufferRoute = new uint8_t[2];
+  m_SizeBufferRoute = 2;
+  m_CopiaID = 0;
 }
 
 SecundariosDataTag::~SecundariosDataTag ()
@@ -56,8 +57,9 @@ SecundariosDataTag::GetInstanceTypeId (void) const
 uint32_t
 SecundariosDataTag::GetSerializedSize (void) const
 {
-  return /*sizeof (ns3::Time)*/sizeof(double) + sizeof (uint32_t) + sizeof (uint32_t) + sizeof (double) +
-         sizeof (uint64_t) + sizeof (uint64_t) + sizeof (uint32_t) + sizeof (uint8_t *)+m_SizeBufferRoute;
+  return /*sizeof (ns3::Time)*/ sizeof (double) + sizeof (uint32_t) + sizeof (uint32_t) +
+         sizeof (double) + sizeof (uint64_t) + sizeof (uint64_t) + sizeof (uint32_t) +
+         /*sizeof (uint8_t *) +*/ m_SizeBufferRoute + sizeof (uint32_t);
 }
 /**
  * The order of how you do Serialize() should match the order of Deserialize()
@@ -73,7 +75,8 @@ SecundariosDataTag::Serialize (TagBuffer i) const
   i.WriteU64 (m_SEQNumber);
   i.WriteU64 (m_chanels);
   i.WriteDouble (m_SL);
-  i.WriteU32(m_SizeBufferRoute);
+  i.WriteU32 (m_CopiaID);
+  i.WriteU32 (m_SizeBufferRoute);
   i.Write (m_BufferRoute, m_SizeBufferRoute);
 }
 /** This function reads data from a buffer and store it in class's instance variables.
@@ -95,9 +98,14 @@ SecundariosDataTag::Deserialize (TagBuffer i)
 
   m_SL = i.ReadDouble ();
 
+  m_CopiaID = i.ReadU32 ();
+
   m_SizeBufferRoute = i.ReadU32 ();
 
+  m_BufferRoute = new uint8_t[m_SizeBufferRoute];
+  
   i.Read (m_BufferRoute, m_SizeBufferRoute);
+
 }
 /**
  * This function can be used with ASCII traces if enabled. 
@@ -109,7 +117,7 @@ SecundariosDataTag::Print (std::ostream &os) const
 {
   std::string ruta = std::string (m_BufferRoute, m_BufferRoute + m_SizeBufferRoute);
   os << "Secundarios Data Tag--- Nodo fuente : " << m_nodeId << "\t SEQ: (" << m_SEQNumber << ")"
-     << "\t Retardo total: (" << m_timestamp.GetSeconds () << ")"
+     << " Copia: " << m_CopiaID << "\t Retardo total: (" << m_timestamp.GetSeconds () << ")"
      << " Satisfaccíon L: (" << m_SL << ")"
      << " Ruta: " << ruta << std::endl;
 }
@@ -171,6 +179,16 @@ double
 SecundariosDataTag::GetSL ()
 {
   return m_SL;
+}
+uint32_t
+SecundariosDataTag::GetcopiaID ()
+{
+  return m_CopiaID;
+}
+void
+SecundariosDataTag::setCopiaID (uint32_t CopiaID)
+{
+  m_CopiaID = CopiaID;
 }
 void
 SecundariosDataTag::SetSL (double SL)

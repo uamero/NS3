@@ -11,18 +11,19 @@ namespace ns3 {
      */
 typedef struct
 {
-  Mac48Address MacaddressNB;//ID del vecino
+  Mac48Address MacaddressNB; //ID del vecino
   uint32_t NodoID;
   double SL_canal;
-  Time last_beacon;//Tiempo del último mensaje
-  uint32_t canal;//por que canal lo envio 
-}ST_VecinosA;
+  Time last_beacon; //Tiempo del último mensaje
+  uint32_t canal; //por que canal lo envio
+} ST_VecinosA;
 
 typedef struct
 {
   u_long numeroSEQ;
   uint32_t ID_Creador;
   uint32_t Tam_Paquete;
+  uint32_t m_IDcopia;
   Time Tiempo_ultimo_envio;
   Time Tiempo_primer_envio;
   Time Tiempo_de_recibo_envio;
@@ -34,8 +35,8 @@ typedef struct
   Ptr<Packet> m_packet;
   Time Tiempo_ultimo_envio;
   Time retardo;
-} ST_Reenvios;//Esta estructura sirve para almacenar los paquetes
-              //a reenviar dentro de la memoria del nodo y acumula el retardo que se acumula en el paquete
+} ST_Reenvios; //Esta estructura sirve para almacenar los paquetes
+    //a reenviar dentro de la memoria del nodo y acumula el retardo que se acumula en el paquete
 typedef struct
 {
   std::string m_chanels; //esta variable sirve para limitar los canales que se reciben
@@ -44,10 +45,11 @@ typedef struct
 } ST_Canales;
 typedef struct
 {
-  
+
   Ptr<Packet> m_packet;
   Time m_TimeTosavedOnBuffer;
-  bool m_Send;//Si es True el paquete debe ser enviado de lo contrario su información debe ser leída 
+  bool
+      m_Send; //Si es True el paquete debe ser enviado de lo contrario su información debe ser leída
 } ST_PacketInBufferA;
 
 typedef struct
@@ -93,10 +95,10 @@ public:
   /** \brief Change the data rate used for broadcasts.
              */
   void SetWifiMode (WifiMode mode);
-  void SendPacket();
+  void SendPacket ();
   bool
   VerificaVisitados_Enviar (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
-  bool 
+  bool
   VerificaVisitados_Guardar (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados_Enviar (); //funcion para comenzar la iteraci[n desde el primer canal
   void ReiniciaVisitados_Guardar (); //funcion para comenzar la iteraci[n desde el primer canal
@@ -109,19 +111,15 @@ public:
   bool BuscaPaquete ();
   void CheckBuffer ();
   Time GetMAxtime ();
-  u_long CalculaSeqNumber (u_long *sem);
-  void ConfirmaEntrega (u_long SEQ,Time delay);
+  void ConfirmaEntrega (u_long SEQ, Time delay, uint32_t IDcreador, uint32_t CopiaID);
   /*bool
   VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal*/
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla (u_long SEQ);
-  void Guarda_Info_Paquete (Ptr<Packet> paquete,Time TimeBuff);
+  bool BuscaSEQEnTabla (u_long SEQ, uint32_t ID_creador,uint32_t CopiaID);
 
-  void setSemilla (u_long sem);
   void CanalesDisponibles ();
   void CreaBuffersCanales ();
-  void ReenviaPaquete ();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
   bool BuscaCanalesID (std::string ch, uint32_t ID, Time timD);
   bool VerificaCanal (uint32_t ch);
@@ -133,12 +131,13 @@ public:
   Time m_simulation_time;
   uint32_t m_n_channels;
   std::list<uint32_t> m_RangeOfChannels_Info;
-   bool Entregado (u_long SEQ);
+  bool Entregado (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   void iniciaCanales ();
-  std::list<ST_Reenvios> m_Paquetes_A_Reenviar;/*Lista en donde se almacenan los paquetes a reenviar*/
-  std::list<ST_Reenvios> m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
-  std::string operacionORString(std::string str1,std::string str2);
-   uint32_t m_collissions;
+  std::list<ST_Reenvios>
+      m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
+  std::string operacionORString (std::string str1, std::string str2);
+  uint32_t m_collissions;
+
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -148,17 +147,16 @@ private:
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   std::list<ST_Canales> m_Canales_disponibles; /**> Lista de paquetes a reenviar*/
   std::list<uint32_t> m_Canales_Para_Utilizar;
-  std::list<ST_VecinosA> m_vecinos_list;//lista de vecinos
+  std::list<ST_VecinosA> m_vecinos_list; //lista de vecinos
   std::list<ST_bufferOfCannelsA>
       m_bufferA; //lista que contiene listas que representan a los buffers de cada canal
 
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   Time m_Tiempo_de_reenvio;
-  u_long m_semilla;
   WifiMode m_mode; /**< data rate used for broadcasts */
   uint32_t m_satisfaccionL;
   uint32_t m_satisfaccionG;
- 
+
   double m_retardo_acumulado;
 };
 } // namespace ns3

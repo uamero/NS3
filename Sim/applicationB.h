@@ -97,9 +97,9 @@ public:
   /** \brief Remove neighbors you haven't heard from after some time.
              */
   void RemoveOldNeighbors ();
-  void ConfirmaEntrega (u_long SEQ);
+  void ConfirmaEntrega (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla (u_long SEQ);
+  bool BuscaSEQEnTabla (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   void Guarda_Paquete_reenvio (Ptr<Packet> paquete,Time TimeBuff);
   void CanalesDisponibles ();
   /*Se actualiza o bien se agregan los canales que los usarios primarios ocupan del espectro */
@@ -115,7 +115,7 @@ public:
   void iniciaCanales ();
   void ReadPacketOnBuffer ();
   bool BuscaPaquete ();
-  bool Entregado (u_long SEQ);
+  bool Entregado (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
   void CheckBuffer ();
   void CreaBuffersCanales ();
   bool

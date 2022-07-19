@@ -44,6 +44,8 @@ public:
   void SetSizeBufferRoute(uint32_t SizeBuffer);
   SecundariosDataTag ();
   virtual ~SecundariosDataTag ();
+  uint32_t GetcopiaID();
+  void setCopiaID(uint32_t CopiaID); 
 
 private:
   uint32_t m_nodeId; /**> Id del nodo creador*/
@@ -54,8 +56,7 @@ private:
   double m_SL;//Valor de la satisfacción local previa de este paquete
   uint8_t *m_BufferRoute;
   uint32_t m_SizeBufferRoute;
-  //uint8_t *m_BufferRoute2;
-  //uint32_t m_SizeBufferRoute2;
+  uint32_t m_CopiaID;
 };
 } // namespace ns3
 

@@ -283,13 +283,13 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 5; //Numero de nodos alarmados en la red
-  uint32_t n_SecundariosB = 20; //Numero de nodos ruteadores en la red
+  uint32_t n_SecundariosA = 75; //Numero de nodos alarmados en la red
+  uint32_t n_SecundariosB = 175; //Numero de nodos ruteadores en la red
   uint32_t n_Primarios = 0; //Numero de estaciones base secundarias en la red
   uint32_t n_Sink = 1; //Numero de nodos Sink en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
   n_channels = 1; // Numero de canales, por default 8
-  uint32_t Semilla_Sim = 925446085;
+  uint32_t Semilla_Sim = 4135484637;
   uint32_t escenario =
       3; //escenario 1.- edificio con muros 2.-Escenario en exteriores con obs. 3.- Escenario exteriores sin obstaculos
 
@@ -945,8 +945,7 @@ main (int argc, char *argv[])
       app_i->SetStartTime (Seconds (0));
       //app_i->SetMAxtime (Seconds (MaxTimeToStop));
       //app_i->SetStopTime (Seconds (simTime));
-      app_i->setSemilla (Semilla_Sim + i);
-      app_i->IniciaTabla (n_Packets_A_Enviar, i);
+      app_i->IniciaTabla (n_Packets_A_Enviar, SecundariosA.Get(i)->GetId());
       app_i->m_n_channels = n_channels;
       app_i->iniciaCanales ();
       app_i->CanalesDisponibles ();
@@ -1005,7 +1004,6 @@ main (int argc, char *argv[])
       anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
       anim.UpdateNodeImage (Sink.Get (i)->GetId (), img_fm);
     }
-
   Packet::EnablePrinting ();
   /*Termina instalación de la aplicación*/
 
