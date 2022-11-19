@@ -22,7 +22,6 @@ SinkDataTag::SinkDataTag ()
   m_timestamp = Time (0);
   m_BufferRoute = new uint8_t[5];
   m_SizeBufferRoute = 5;
-  m_SG = 0;
   m_CopiaID = 0;
   // std::cout<<"Si salgo"<<std::endl;
 }
@@ -101,9 +100,11 @@ SinkDataTag::Deserialize (TagBuffer i)
 
   m_SizeBufferRoute = i.ReadU32 ();
 
+  delete [] m_BufferRoute;
+
   m_BufferRoute = new uint8_t[m_SizeBufferRoute];
 
-  i.Read (m_BufferRoute, m_SizeBufferRoute);
+ i.Read (m_BufferRoute, m_SizeBufferRoute);
 }
 /**
  * This function can be used with ASCII traces if enabled. 

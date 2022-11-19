@@ -111,14 +111,14 @@ ApplicationSink::BroadcastInformation ()
           //std::cout << "Ultimo envio: " << Ultimo_Envio.GetSeconds () << std::endl;
           if (it->NumeroDeEnvios < 1 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
-              std::cout << "Sink::BroadcastInformation1" << std::endl;
+              // std::cout << "Sink::BroadcastInformation1" << std::endl;
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
               it->NumeroDeEnvios += 1;
               m_wifiDevice->Send (it->m_packet, Mac48Address::GetBroadcast (), 0x88dc);
               it->Tiempo_ultimo_envio = Now ();
               //std::cout << "Envie paquete sink" << std::endl;
               //Simulator::Stop();
-              std::cout << "Sink::BroadcastInformation2" << std::endl;
+              //std::cout << "Sink::BroadcastInformation2" << std::endl;
               break;
             }
         }
@@ -226,13 +226,15 @@ ApplicationSink::ReadPacketOnBuffer ()
                                TimeInThisNode.GetSeconds ()
                         << std::endl;*/
 
-              if (Entregado (SecundariosTag.GetSEQNumber (),SecundariosTag.GetNodeId(),SecundariosTag.GetcopiaID()))
+              if (Entregado (SecundariosTag.GetSEQNumber (), SecundariosTag.GetNodeId (),
+                             SecundariosTag.GetcopiaID ()))
                 {
                   // std::cout << "Recibi paquete en sink : " << SinkTag.GetSEQNumber () << " | "
                   //          << Now ().GetSeconds () << std::endl;
                   break; //Si el paquete ya está entregado no se envia el paquete
                 }
-              if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber (),SecundariosTag.GetNodeId(),SecundariosTag.GetcopiaID()))
+              if (!BuscaSEQEnTabla (SecundariosTag.GetSEQNumber (), SecundariosTag.GetNodeId (),
+                                    SecundariosTag.GetcopiaID ()))
                 {
                   //SecundariosTag.Print (std::cout);
                   //std::cout << "Sink::ReadPacketOnBuffer1 " << std::endl;
@@ -251,13 +253,12 @@ ApplicationSink::ReadPacketOnBuffer ()
                   std::cout << std::endl;*/
 
                   SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
-                  SinkTag.setCopiaID(SecundariosTag.GetcopiaID());
+                  SinkTag.setCopiaID (SecundariosTag.GetcopiaID ());
                   SinkTag.SetSG (m_SigmaG);
                   SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
                   SinkTag.SetTimestamp (SecundariosTag.GetTimestamp () + TimeInThisNode);
                   SinkTag.SetBufferRoute ((uint8_t *) ruta.c_str ());
                   SinkTag.SetSizeBufferRoute (ruta.length ());
-                  
 
                   //std::cout<<"Aqui me quedo11:"<<std::endl;
                   PacketToReSend->AddPacketTag (SinkTag);
@@ -272,7 +273,7 @@ ApplicationSink::ReadPacketOnBuffer ()
                       TimeInThisNode); //En este punto se almacena en memoria el paquete
                   //m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (NIC));
                   //m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (), 0x88dc);
-                //std::cout << "Sink::ReadPacketOnBuffer2 " << std::endl;
+                  //std::cout << "Sink::ReadPacketOnBuffer2 " << std::endl;
                 }
               else
                 {
@@ -280,7 +281,6 @@ ApplicationSink::ReadPacketOnBuffer ()
                 }
 
               // std::cout << "Aqui me quedo Envio paquete2" << std::endl;
-
               break; //este break rompe el for que itera sobre los buffer de los canales
             }
         }
@@ -466,4 +466,10 @@ ApplicationSink::CreaBuffersCanales ()
       m_bufferSink.push_back (newBufferCH);
     }
 }
+void
+ApplicationSink::SetChannels (uint32_t channels)
+{
+  m_n_channels = channels;
+}
+
 } // namespace ns3

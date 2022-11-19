@@ -124,7 +124,6 @@ public:
   bool BuscaCanalesID (std::string ch, uint32_t ID, Time timD);
   bool VerificaCanal (uint32_t ch);
   std::string ObtenDAtosNodo ();
-  bool VerificaFinDeSimulacion ();
   Mac48Address GetNextHop (uint32_t channel);
   std::list<ST_Paquete_A_Enviar> m_Tabla_paquetes_A_enviar; /**> Lista de paquetes a enviar*/
   Time m_broadcast_time; /**< How often do you broadcast messages */
@@ -137,12 +136,11 @@ public:
       m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
   std::string operacionORString (std::string str1, std::string str2);
   uint32_t m_collissions;
-
+  void SetChannels(uint32_t channels);
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
   void StartApplication ();
-
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   std::list<ST_Canales> m_Canales_disponibles; /**> Lista de paquetes a reenviar*/

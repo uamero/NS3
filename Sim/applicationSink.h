@@ -10,7 +10,6 @@ namespace ns3 {
      * The time 'last_beacon' is used to determine whether we should remove the neighbor from the list.
      */
 
-
 typedef struct
 {
   Ptr<Packet> m_packet;
@@ -43,8 +42,8 @@ public:
   /** \brief Broadcast some information 
              */
   void BroadcastInformation ();
-  void IniciaTabla(uint32_t PQts_A_enviar);
-  void ImprimeTabla();
+  void IniciaTabla (uint32_t PQts_A_enviar);
+  void ImprimeTabla ();
   void CreaBuffersCanales ();
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
@@ -59,19 +58,21 @@ public:
   bool
   VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
-  bool Entregado (u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
+  bool Entregado (u_long SEQ, uint32_t IDcreador, uint32_t IDCopia);
   /** \brief Update a neighbor's last contact time, or add a new neighbor
              */
 
   /** \brief Change the data rate used for broadcasts.
              */
   void SetWifiMode (WifiMode mode);
- 
-  void ConfirmaEntrega(u_long SEQ);
+
+  void ConfirmaEntrega (u_long SEQ);
   //You can create more functions like getters, setters, and others
-  bool BuscaSEQEnTabla(u_long SEQ,uint32_t IDcreador,uint32_t IDCopia);
-  void Guarda_Paquete_para_ACK(Ptr<Packet> paquete, Time timeBuff);
+  bool BuscaSEQEnTabla (u_long SEQ, uint32_t IDcreador, uint32_t IDCopia);
+  void Guarda_Paquete_para_ACK (Ptr<Packet> paquete, Time timeBuff);
   uint32_t m_n_channels;
+  void SetChannels (uint32_t channels);
+
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -79,15 +80,15 @@ private:
   Time m_broadcast_time; /**< How often do you broadcast messages */
   uint32_t m_packetSize; /**< Packet size in bytes */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
-  std::list<ST_Reenvios_Sink> m_Tabla_paquetes_ACK;/**> Lista de paquetes a enviar*/
+  std::list<ST_Reenvios_Sink> m_Tabla_paquetes_ACK; /**> Lista de paquetes a enviar*/
   Time m_time_limit; /**< Time limit to keep neighbors in a list*/
   Time m_Tiempo_de_reenvio;
   u_long m_semilla;
   WifiMode m_mode; /**< data rate used for broadcasts */
   uint32_t m_SigmaG;
-  std::list<ST_bufferOfCannels_sink>
-      m_bufferSink;
-  std::list<ST_Reenvios_Sink> m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
+  std::list<ST_bufferOfCannels_sink> m_bufferSink;
+  std::list<ST_Reenvios_Sink>
+      m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/
   double m_retardo_acumulado;
 };
 } // namespace ns3

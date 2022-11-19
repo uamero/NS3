@@ -31,7 +31,7 @@ public:
   /** \brief Broadcast some information 
              */
   void BroadcastInformation ();
-  
+
   /** \brief This function is called when a net device receives a packet. 
              * I connect to the callback in StartApplication. This matches the signiture of NetDevice receive.
              */
@@ -45,10 +45,13 @@ public:
   /** \brief Remove neighbors you haven't heard from after some time.
              */
   //You can create more functions like getters, setters, and others
-  
-  uint32_t Corrimientos( uint32_t registro);
-  void GetCanales();
-  uint32_t m_n_channels;//esta es la cantidad de devices que tiene cada nodo
+
+  uint32_t Corrimientos (uint32_t registro);
+  void GetCanales ();
+  uint32_t m_n_channels; //esta es la cantidad de devices que tiene cada nodo
+  void SetChannels (uint32_t channels);
+  uint8_t m_porcentaje_Ch_disp;
+
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -56,8 +59,7 @@ private:
   Time m_broadcast_time; /**< How often do you broadcast messages */
   Ptr<WifiNetDevice> m_wifiDevice; /**< A WaveNetDevice that is attached to this device */
   WifiMode m_mode; /**< data rate used for broadcasts */
-  std::string m_chs;//una cadena de 0 y 1 que representa la disponibilidad de los canales
-  uint8_t m_porcentaje_Ch_disp;
+  std::string m_chs; //una cadena de 0 y 1 que representa la disponibilidad de los canales
 };
 } // namespace ns3
 

@@ -101,6 +101,8 @@ SecundariosDataTag::Deserialize (TagBuffer i)
   m_CopiaID = i.ReadU32 ();
 
   m_SizeBufferRoute = i.ReadU32 ();
+  
+  delete [] m_BufferRoute;
 
   m_BufferRoute = new uint8_t[m_SizeBufferRoute];
   

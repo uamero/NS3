@@ -207,15 +207,24 @@ verifica_termino_Simulacion ()
   for (uint32_t i = 0; i < SA.GetN (); i++)
     {
       Ptr<CustomApplication> appI = DynamicCast<CustomApplication> (SA.Get (i)->GetApplication (0));
-
+      bool tnodo = true;
       for (std::list<ST_Paquete_A_Enviar>::iterator it = appI->m_Tabla_paquetes_A_enviar.begin ();
            it != appI->m_Tabla_paquetes_A_enviar.end (); it++)
         {
+          //std::cout << "#####Tiempo: " <<Now().GetSeconds()<<"Nodo: "<<appI->GetNode ()->GetId ()<<" Estado> " <<it->Estado<< std::endl;
           if (!it->Estado)
             {
               termina = false;
+              tnodo = false;
               break;
             }
+        }
+      if (tnodo)
+        {
+          //std::cout << "#####El nodo: " << appI->GetNode ()->GetId () << " Se ha detenido" << std::endl;
+          appI->SetStopTime (Now ());
+
+          //appI->~CustomApplication();
         }
     }
   if (termina)
@@ -276,6 +285,7 @@ PrintGnuplottableBuildingListToFile (std::string filename)
               << box.xMax << "," << box.yMax << std::endl;
     }
 }
+
 int
 main (int argc, char *argv[])
 {
@@ -283,16 +293,16 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 75; //Numero de nodos alarmados en la red
-  uint32_t n_SecundariosB = 175; //Numero de nodos ruteadores en la red
-  uint32_t n_Primarios = 0; //Numero de estaciones base secundarias en la red
+  uint32_t n_SecundariosA = 5; //Numero de nodos alarmados en la red
+  uint32_t n_SecundariosB = 30; //Numero de nodos ruteadores en la red
+  uint32_t n_Primarios = 5; //Numero de estaciones base secundarias en la red
   uint32_t n_Sink = 1; //Numero de nodos Sink en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-  n_channels = 1; // Numero de canales, por default 8
+  n_channels = 10; // Numero de canales, por default 8
   uint32_t Semilla_Sim = 4135484637;
   uint32_t escenario =
       3; //escenario 1.- edificio con muros 2.-Escenario en exteriores con obs. 3.- Escenario exteriores sin obstaculos
-
+  uint32_t porcentajeOcupacion = 10;
   uint8_t RWP = 1;
   bool homogeneo = true;
   //const double R = 0.046; //J, Energy consumption on reception
@@ -304,7 +314,7 @@ main (int argc, char *argv[])
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
       1; //numero de paquetes a ser creados por cada uno de los nodos generadores
-  uint32_t TP = 5;
+  uint32_t TP = 10;
   std::string CSVFile = "default.csv";
   bool StartSimulation = true;
 
@@ -321,6 +331,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("tp", "Tiempo de actualizacion de los canales de los primarios", TP);
   cmd.AddValue ("nch", "Numero de canales a instalar", n_channels);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
+  cmd.AddValue ("pO", "Porcentaje de ocupacion", porcentajeOcupacion);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
@@ -373,11 +384,10 @@ main (int argc, char *argv[])
   Ptr<OutdoorPositionAllocator> position = CreateObject<OutdoorPositionAllocator> ();
   Ptr<UniformRandomVariable> xPos = CreateObject<UniformRandomVariable> ();
   Ptr<UniformRandomVariable> yPos = CreateObject<UniformRandomVariable> ();
-
-  NodeContainer SecundariosA;
-  NodeContainer Primarios;
-  NodeContainer Sink;
+  /*Creación de nodos -> Contenedor.Create(Número de nodos)*/
+  NodeContainer SecundariosA, Primarios, Sink;
   SecundariosA.Create (n_SecundariosA);
+  SecundariosB.Create (n_SecundariosB);
   Primarios.Create (n_Primarios);
   Sink.Create (n_Sink);
 
@@ -541,7 +551,7 @@ main (int argc, char *argv[])
       ns2.Install ();
       break;*/
     case 3:
-
+      /*Movilidad Secundarios*/
       mobilit.SetPositionAllocator ("ns3::RandomBoxPositionAllocator", "X",
                                     StringValue ("ns3::UniformRandomVariable[Min=0|Max=500]"), "Y",
                                     StringValue ("ns3::UniformRandomVariable[Min=0|Max=500]"), "Z",
@@ -587,7 +597,7 @@ main (int argc, char *argv[])
           std::cout << "No ha seleccionado el modelo de movilidad a utilizar" << std::endl;
           break;
         }
-      
+
       mobilit.Install (SecundariosB);
       mobilit.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
       mobilit.Install (SecundariosA);
@@ -596,7 +606,7 @@ main (int argc, char *argv[])
           Ptr<ConstantPositionMobilityModel> SA_Pos = DynamicCast<ConstantPositionMobilityModel> (
               SecundariosA.Get (0)->GetObject<MobilityModel> ());
           SA_Pos->SetPosition (Vector (500, 500, 0));
-           /*Ptr<ConstantPositionMobilityModel> SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
+          /*Ptr<ConstantPositionMobilityModel> SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
               SecundariosB.Get (0)->GetObject<MobilityModel> ());
           SB_Pos->SetPosition (Vector (250, 250, 0));
            SB_Pos = DynamicCast<ConstantPositionMobilityModel> (
@@ -717,71 +727,49 @@ main (int argc, char *argv[])
   wifiChannelSink.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
 
   wifiChannelSink.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                      DoubleValue (5000));
-
+                                      DoubleValue (710));
   YansWifiChannelHelper wifiChannelPrimarios;
+
   if (escenario == 1)
     { // caso del edificio
 
       wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                               DoubleValue (100));
+                                               DoubleValue (200));
     }
   else
     {
       wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                               DoubleValue (100));
+                                               DoubleValue (200));
     }
-
-  WifiMacHelper wifiMac; //Permite crear nodo ad-hoc
-
+  std::list<uint32_t> List_RangeOfChannels;
+   WifiMacHelper wifiMac;
   wifiMac.SetType ("ns3::AdhocWifiMac");
   WifiHelper wifi, wifiSink, wifiPrimarios;
   wifi.SetStandard (WIFI_STANDARD_80211g);
-
   wifiSink.SetStandard (WIFI_STANDARD_80211g);
   wifiPrimarios.SetStandard (WIFI_STANDARD_80211g);
-
-  std::list<uint32_t> List_RangeOfChannels;
 
   /*#####Implementación de los canales en los nodos tipo A y tipo B*/
   for (uint32_t i = 0; i < n_channels; i++)
     {
-
       YansWifiChannelHelper wifiChannel;
       wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-      uint32_t distance;
-      if (homogeneo)
-        distance = 38;
-      else
-        distance = rand->GetInteger (38, 140);
-      List_RangeOfChannels.push_back (distance);
-
-      /* wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                      DoubleValue (distance));*/
-
-      //wifiChannel.AddPropagationLoss ("ns3::HybridBuildingsPropagationLossModel");
-      /*El modelo ohBuildings convina dos modelos para mas informacion observar https://www.nsnam.org/docs/release/3.32/doxygen/classns3_1_1_oh_buildings_propagation_loss_model.html#details
-      https://www.nsnam.org/docs/release/3.32/doxygen/oh-buildings-propagation-loss-model_8h.html
-      */
-      // wifiChannel.AddPropagationLoss ("ns3::OhBuildingsPropagationLossModel");
       wifiChannel.AddPropagationLoss ("ns3::FriisPropagationLossModel");
-      //wifiChannel.AddPropagationLoss ("ns3::BuildingsPropagationLossModel");
 
       YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
       wifiPhy.SetChannel (wifiChannel.Create ());
-      //https://www.nsnam.org/docs/release/3.32/doxygen/classns3_1_1_yans_wifi_phy.html
-      wifiPhy.Set("ChannelWidth",UintegerValue(20));
-      wifiPhy.Set ("TxPowerStart", DoubleValue (5)); //5
-      wifiPhy.Set ("TxPowerEnd", DoubleValue (10)); //33
-      wifiPhy.Set ("TxPowerLevels", UintegerValue (2)); //8
+      wifiPhy.Set ("ChannelWidth", UintegerValue (20));
+      wifiPhy.Set ("TxPowerStart", DoubleValue (5)); 
+      wifiPhy.Set ("TxPowerEnd", DoubleValue (10)); 
+      wifiPhy.Set ("TxPowerLevels", UintegerValue (2)); 
       wifi.Install (wifiPhy, wifiMac,
                     SecundariosA); //Device para comunicar a los nodos tipo A y B
       wifi.Install (wifiPhy, wifiMac,
                     SecundariosB); //Device para comunicar a los nodos tipo A y B
-      wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B
-      wifi.Install (wifiPhy, wifiMac, Sink);
+      wifi.Install (wifiPhy, wifiMac, Primarios); //Device para comunicar a los nodos tipo A y B con los nodos primarios
+      wifi.Install (wifiPhy, wifiMac, Sink);//Device para comunicar a los nodos tipo A y B con el nodo Sink
       /*Ese ciclo for instala de 0 a n-1 interfaces en los Nodecontainer de Sencundarios A,B,Primarios y el Sink */
     }
   //-------------------->>>>>>>>>>>Probar e identificar que interfaces son las del Sink y las de los usuarios primarios
@@ -789,24 +777,17 @@ main (int argc, char *argv[])
   /*Termina conf. del canal*/
   //Ptr<YansWifiChannel> channel = wifiChannel.Create ();
   /*Se configura la capa fisica del dispositivo*/
-  //#########YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
   YansWifiPhyHelper wifiPhySink = YansWifiPhyHelper::Default ();
-  YansWifiPhyHelper wifiPhyPrimarios = YansWifiPhyHelper::Default ();
-  /*Termina capa fisica*/
-
-  /*Se crea el canal y se configura la capa física*/
-  // wifiPhy.SetChannel (channel);
-  //Ptr<ns3::YansWifiChannel>chann = wifiChannel.Create ();
-  //#################wifiPhy.SetChannel (wifiChannel.Create ());
-  //wifiPhy.SetChannel (chann);
-
-  //wifiChannel.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange", DoubleValue (20));
-
-  //wifiPhy.SetChannel (wifiChannel);
-
   wifiPhySink.SetChannel (wifiChannelSink.Create ());
-
+  wifiPhySink.Set ("TxPowerStart", DoubleValue (10));
+  wifiPhySink.Set ("TxPowerEnd", DoubleValue (40));
+  wifiPhySink.Set ("TxPowerLevels", UintegerValue (16));
+  YansWifiPhyHelper wifiPhyPrimarios = YansWifiPhyHelper::Default ();
   wifiPhyPrimarios.SetChannel (wifiChannelPrimarios.Create ());
+  wifiPhyPrimarios.Set ("TxPowerStart", DoubleValue (10));
+  wifiPhyPrimarios.Set ("TxPowerEnd", DoubleValue (40));
+  wifiPhyPrimarios.Set ("TxPowerLevels", UintegerValue (16));
+  /*Termina capa fisica*/
 
   //wifiPhy.SetPcapDataLinkType (
   //WifiPhyHelper::DLT_IEEE802_11_RADIO); /*Añade informacion adicional sobre el enlace*/
@@ -816,13 +797,7 @@ main (int argc, char *argv[])
   /*wifiPhy.Set ("TxPowerStart", DoubleValue (10)); //5
   wifiPhy.Set ("TxPowerEnd", DoubleValue (40)); //33
   wifiPhy.Set ("TxPowerLevels", UintegerValue (16)); //8*/
-  wifiPhySink.Set ("TxPowerStart", DoubleValue (10)); //5
-  wifiPhySink.Set ("TxPowerEnd", DoubleValue (40)); //33
-  wifiPhySink.Set ("TxPowerLevels", UintegerValue (16));
 
-  wifiPhyPrimarios.Set ("TxPowerStart", DoubleValue (10)); //5
-  wifiPhyPrimarios.Set ("TxPowerEnd", DoubleValue (40)); //33
-  wifiPhyPrimarios.Set ("TxPowerLevels", UintegerValue (16));
   /*Termina configuración*/
 
   /*Comienza la configuración de la capa de enlace*/
@@ -927,6 +902,7 @@ main (int argc, char *argv[])
   //flujo.Install (SecundariosB);
   //Ptr<FlowMonitor> flow_nodes = flujo.InstallAll ();
   AnimationInterface anim ("manetPB.xml");
+  anim.SetMaxPktsPerTraceFile (50000);
   //NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, nodos);
   /*Termina configuración de la capa de enlace*/
   uint32_t img_phone = anim.AddResource ("/home/manolo/bake/source/ns-3.32/cel.png");
@@ -937,71 +913,50 @@ main (int argc, char *argv[])
   /*Comienza la instalación de la aplicación en los nodos*/
   for (uint32_t i = 0; i < SecundariosA.GetN (); i++)
     {
-      //std::ostringstream oss;
-      // std::cout<< "ID1: "<< SecundariosA.Get(i)->GetId()<<std::endl;
-
       Ptr<CustomApplication> app_i = CreateObject<CustomApplication> ();
       app_i->SetBroadcastInterval (Seconds (intervalA));
       app_i->SetStartTime (Seconds (0));
-      //app_i->SetMAxtime (Seconds (MaxTimeToStop));
-      //app_i->SetStopTime (Seconds (simTime));
-      app_i->IniciaTabla (n_Packets_A_Enviar, SecundariosA.Get(i)->GetId());
-      app_i->m_n_channels = n_channels;
+      app_i->IniciaTabla (n_Packets_A_Enviar, SecundariosA.Get (i)->GetId ());
+      app_i->SetChannels (n_channels);
       app_i->iniciaCanales ();
       app_i->CanalesDisponibles ();
       app_i->CreaBuffersCanales ();
-      app_i->m_RangeOfChannels_Info = List_RangeOfChannels;
       SecundariosA.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosA.Get (i)->GetId (), 0, 255, 0); //verde
       anim.UpdateNodeImage (SecundariosA.Get (i)->GetId (), img_alarmado);
-      //app_i->ImprimeTabla ();
     }
   for (uint32_t i = 0; i < SecundariosB.GetN (); i++)
     {
-
-      //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
-      //std::ostringstream oss;
       Ptr<CustomApplicationBnodes> app_i = CreateObject<CustomApplicationBnodes> ();
-      app_i->SetBroadcastInterval (Seconds (rand->GetInteger (1, 20)));
-      //app_i->SetBroadcastInterval (Seconds (intervalB));
+      app_i->SetBroadcastInterval (Seconds (rand->GetInteger (5, 20)));
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels = n_channels;
+      app_i->SetChannels (n_channels);
       app_i->iniciaCanales ();
       app_i->CreaBuffersCanales ();
-      //app_i->SetStopTime (Seconds (simTime));
       SecundariosB.Get (i)->AddApplication (app_i);
-      // std::cout << "El tiempo de broadcast en el nodo " << app_i->GetNode ()->GetId ()
-      //          << " es :" << app_i->GetBroadcastInterval ().GetSeconds () << std::endl;
       anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
       anim.UpdateNodeImage (SecundariosB.Get (i)->GetId (), img_phone);
     }
 
   for (uint32_t i = 0; i < Primarios.GetN (); i++)
     {
-      //std::cout<< "ID2: "<< SecundariosB.Get(i)->GetId()<<std::endl;
-      //std::ostringstream oss;
       Ptr<CustomApplicationPnodes> app_i = CreateObject<CustomApplicationPnodes> ();
-      //app_i->SetBroadcastInterval (Seconds (interval)); Que el broadcast se realice cada 100 ms
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels = n_channels;
+      app_i->SetChannels (n_channels);
       app_i->SetBroadcastInterval (Seconds (TP));
-      //app_i->SetStopTime (Seconds (simTime));
+      app_i->m_porcentaje_Ch_disp = porcentajeOcupacion;
       Primarios.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (Primarios.Get (i)->GetId (), 255, 164, 032); //naranja
       anim.UpdateNodeImage (Primarios.Get (i)->GetId (), img_tower);
     }
   for (uint32_t i = 0; i < Sink.GetN (); i++)
-    {
-      //std::cout<< "ID3: "<< Sink.Get(i)->GetId()<<std::endl;
-      //std::ostringstream oss;
+    {//En este caso solo es un solo Sink
       Ptr<ApplicationSink> app_i = CreateObject<ApplicationSink> ();
-      //app_i->SetBroadcastInterval (Seconds (interval));
       app_i->SetStartTime (Seconds (0));
-      app_i->m_n_channels = n_channels;
+      app_i->SetChannels (n_channels);
       app_i->CreaBuffersCanales ();
-      //app_i->SetStopTime (Seconds (simTime));
       Sink.Get (i)->AddApplication (app_i);
-      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0); //amarillo
+      anim.UpdateNodeColor (Sink.Get (i)->GetId (), 255, 255, 0);//amarillo
       anim.UpdateNodeImage (Sink.Get (i)->GetId (), img_fm);
     }
   Packet::EnablePrinting ();
@@ -1010,7 +965,7 @@ main (int argc, char *argv[])
   std::string path = "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop";
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/MonitorSnifferRx",
   //                MakeCallback (&Rx));
- // Config::Connect (path, MakeCallback (&PhyRxDropTrace));
+  // Config::Connect (path, MakeCallback (&PhyRxDropTrace));
 
   //Config::Connect ("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx", MakeCallback (&MacTxTrace));
   //double new_range = 10;
@@ -1023,8 +978,8 @@ main (int argc, char *argv[])
   /*flow_nodes->SetAttribute ("DelayBinWidth", DoubleValue (0.01));
   flow_nodes->SetAttribute ("JitterBinWidth", DoubleValue (0.01));
   flow_nodes->SetAttribute ("PacketSizeBinWidth", DoubleValue (1));*/
-  AsciiTraceHelper ascii;
-  MobilityHelper::EnableAsciiAll (ascii.CreateFileStream ("mobility-trace-example.mob"));
+  //AsciiTraceHelper ascii;
+  //MobilityHelper::EnableAsciiAll (ascii.CreateFileStream ("mobility-trace-example.mob"));
 
   Simulator::Schedule (Seconds (1), &verifica_termino_Simulacion);
   Simulator::Schedule (Seconds (1), &Muerte_nodo_B, sources);

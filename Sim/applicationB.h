@@ -125,6 +125,8 @@ public:
   void ReiniciaVisitados_Enviar (); //funcion para comenzar la iteraci[n desde el primer canal
   void ReiniciaVisitados_Guardar (); //funcion para comenzar la iteraci[n desde el primer canal
   std::string operacionORString(std::string str1,std::string str2);
+  void SetChannels(uint32_t channels);
+  void VerificaNodoEntrega(std::string ruta);
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -143,6 +145,10 @@ private:
   uint32_t m_satisfaccionG;
   double m_retardo_acumulado;
   uint32_t m_collissions;
+  double m_n_pckdv;//numero de paquetes que han pasado por este nodo y se han entregado
+  uint32_t m_n_max_vecinos;//mayor numero de vecinos registrados durante la simulacion
+  double m_n_entregados;
+
 };
 } // namespace ns3
 

@@ -73,8 +73,7 @@ CustomApplicationPnodes::StartApplication ()
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
-      Simulator::Schedule (random_offset,
-                           &CustomApplicationPnodes::BroadcastInformation, this);
+      Simulator::Schedule (random_offset, &CustomApplicationPnodes::BroadcastInformation, this);
     }
   else
     {
@@ -110,7 +109,7 @@ CustomApplicationPnodes::BroadcastInformation ()
   //Ptr<Packet> PacketToReSend = Create<Packet> ((uint8_t *) m_chs.c_str (), m_chs.length ());
 
   Ptr<Packet> packet = Create<Packet> ((uint8_t *) m_chs.c_str (), m_chs.length ());
- // Ptr<Packet> packet = Create<Packet> ();
+  // Ptr<Packet> packet = Create<Packet> ();
   PrimariosDataTag tag;
   // El timestamp se configrua dentro del constructor del tag
   tag.SetNodeId (GetNode ()->GetId ());
@@ -179,11 +178,10 @@ CustomApplicationPnodes::GetCanales ()
     {
       m_chs = m_chs + std::to_string (CD[i]);
     }
-  //std::cout << m_chs << "  los canales disp. " << N_chs << " en el nodo: "<<GetNode()->GetId() <<std::endl;
-  //uint128_t canales = rand () % ((uint128_t) pow (2, m_n_channels) - 1);
-  // std::bitset<128> x (canales);
-  // m_chs = x.to_string ();
-  //std::string disp = std::string (cadena.rbegin (), cadena.rend ());
 }
-
+void
+CustomApplicationPnodes::SetChannels (uint32_t channels)
+{
+  m_n_channels = channels;
+}
 } // namespace ns3
