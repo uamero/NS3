@@ -3,7 +3,7 @@
 #include "ns3/simulator.h"
 #include "applicationPrimarios.h"
 #include "TagPrimarios.h"
-
+#include <algorithm>
 #include <bitset>
 #define RED_CODE "\033[91m"
 #define GREEN_CODE "\033[32m"
@@ -73,7 +73,7 @@ CustomApplicationPnodes::StartApplication ()
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
       Time random_offset = MicroSeconds (rand->GetValue (50, 200));
-      Simulator::Schedule (random_offset, &CustomApplicationPnodes::BroadcastInformation, this);
+      Simulator::Schedule (Seconds (0.1)+random_offset, &CustomApplicationPnodes::BroadcastInformation, this);
     }
   else
     {
@@ -100,7 +100,8 @@ CustomApplicationPnodes::BroadcastInformation ()
 {
   NS_LOG_FUNCTION (this);
   GetCanales ();
-  //std::cout<<"Primarios: "<<GetNode()->GetNDevices() << " n_chanels: "<<m_n_channels<<std::endl;
+ // std::cout << "Primarios: " << GetNode ()->GetId () << " ocupacion "
+ //<< std::to_string (m_porcentaje_Ch_disp) << std::endl;
   m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
   //uint8_t *buffer = new uint8_t[std::strlen(m_chs.c_str ())];
 
@@ -116,7 +117,8 @@ CustomApplicationPnodes::BroadcastInformation ()
   //tag.SetChanels(0);
   packet->AddPacketTag (tag);
   //std::bitset<8> ocu(tag.GetChanels());
-  //std::cout << "La ocupación enviada por el primario ID: "<<GetNode()->GetId()<<" es: "<<ocu<<std::endl;
+   //std::cout << "La ocupación enviada por el primario ID: " << GetNode ()->GetId ()
+  //          << " es: " << m_chs << " Tiempo: " << Now ().GetSeconds ()<<" Con ocupacion: "<<std::to_string (m_porcentaje_Ch_disp) << std::endl;
   m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
   //Broadcast the packet as WSMP (0x88dc)
   //Schedule next broadcast
@@ -153,30 +155,22 @@ CustomApplicationPnodes::GetCanales ()
     {
       N_chs = 1;
     } //como minimo un canal se ocupa
-
-  uint32_t CD[m_n_channels];
+  uint32_t CD[m_n_channels], chs[m_n_channels];
   m_chs = "";
   for (uint32_t i = 0; i < m_n_channels; i++)
     {
-      CD[i] = 0;
+      chs[i] = 0;
+      CD[i] = i;
     }
-
-  //srand (time (NULL));
-  uint32_t i = 0;
-  while (i != N_chs)
+  std::random_shuffle (&CD[0], &CD[m_n_channels]);
+  for (uint32_t i = 0; i < N_chs; i++)
     {
-      uint32_t disp = rand () % (m_n_channels -
-                                 1); //se genera un numero aleatorio entre 0 y numero de canales -1
-      if (CD[disp] == 0)
-        {
-          CD[disp] = 1;
-          i++;
-        }
+      chs[CD[i]] = 1;
     }
 
   for (uint32_t i = 0; i < m_n_channels; i++)
     {
-      m_chs = m_chs + std::to_string (CD[i]);
+      m_chs = m_chs + std::to_string (chs[i]);
     }
 }
 void

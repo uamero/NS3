@@ -85,7 +85,7 @@ private:
   Time m_Tiempo_de_reenvio;
   u_long m_semilla;
   WifiMode m_mode; /**< data rate used for broadcasts */
-  uint32_t m_SigmaG;
+  double m_SatisfaccionG;
   std::list<ST_bufferOfCannels_sink> m_bufferSink;
   std::list<ST_Reenvios_Sink>
       m_Paquetes_Recibidos; /**> Lista de paquetes provenientes de otros nodos alarmados*/

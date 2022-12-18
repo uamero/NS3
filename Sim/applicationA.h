@@ -28,6 +28,7 @@ typedef struct
   Time Tiempo_primer_envio;
   Time Tiempo_de_recibo_envio;
   uint32_t NumeroDeEnvios;
+  double SG;
   bool Estado; /**> true -> el paquete ha sido entregado*/
 } ST_Paquete_A_Enviar;
 typedef struct
@@ -71,7 +72,7 @@ public:
 
   CustomApplication ();
   ~CustomApplication ();
-
+  void StoApplication();
   /** \brief Broadcast some information 
              */
   void BroadcastInformation ();
@@ -111,7 +112,7 @@ public:
   bool BuscaPaquete ();
   void CheckBuffer ();
   Time GetMAxtime ();
-  void ConfirmaEntrega (u_long SEQ, Time delay, uint32_t IDcreador, uint32_t CopiaID);
+  void ConfirmaEntrega (u_long SEQ, Time delay, uint32_t IDcreador, uint32_t CopiaID,double SG);
   /*bool
   VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal*/
@@ -137,6 +138,7 @@ public:
   std::string operacionORString (std::string str1, std::string str2);
   uint32_t m_collissions;
   void SetChannels(uint32_t channels);
+  bool m_termina; 
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -154,7 +156,7 @@ private:
   WifiMode m_mode; /**< data rate used for broadcasts */
   uint32_t m_satisfaccionL;
   uint32_t m_satisfaccionG;
-
+  EventId m_sendEvent;
   double m_retardo_acumulado;
 };
 } // namespace ns3

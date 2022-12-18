@@ -41,6 +41,7 @@ ApplicationSink::ApplicationSink ()
   m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
   m_semilla = 0; // controla los numeros de secuencia
   m_n_channels = 8;
+  m_SatisfaccionG = 0;
 }
 ApplicationSink::~ApplicationSink ()
 {
@@ -111,9 +112,18 @@ ApplicationSink::BroadcastInformation ()
           //std::cout << "Ultimo envio: " << Ultimo_Envio.GetSeconds () << std::endl;
           if (it->NumeroDeEnvios < 1 && (Ultimo_Envio >= m_Tiempo_de_reenvio))
             {
+              SinkDataTag TagSink;
+              it->m_packet->PeekPacketTag (TagSink);
+              // std::cout << "*************************La SG del Sink es :"
+              //           << std::to_string (m_SatisfaccionG / m_Tabla_paquetes_ACK.size ())
+              //          << " La del paquete recibido es " << std::to_string (TagSink.GetSG ())
+              //          << std::endl;
+              TagSink.SetSG (m_SatisfaccionG / m_Tabla_paquetes_ACK.size ());
+              it->m_packet->ReplacePacketTag (TagSink);
               // std::cout << "Sink::BroadcastInformation1" << std::endl;
               m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (m_n_channels));
               it->NumeroDeEnvios += 1;
+
               m_wifiDevice->Send (it->m_packet, Mac48Address::GetBroadcast (), 0x88dc);
               it->Tiempo_ultimo_envio = Now ();
               //std::cout << "Envie paquete sink" << std::endl;
@@ -141,10 +151,9 @@ ApplicationSink::ReceivePacket (Ptr<NetDevice> device, Ptr<const Packet> packet,
       //         << device->GetIfIndex () << " | " << NIC << std::endl;
       if (NIC == device->GetIfIndex ())
         {
-          SecundariosDataTag sec;
-          packet->PeekPacketTag (sec);
           /*std::cout << "SEQN: " << sec.GetSEQNumber ()
                     << " El paquete llego corectamente: " << Now ().GetSeconds () << std::endl;*/
+
           ST_PacketInBuffer_sink newPacket;
           newPacket.m_packet = packet->Copy ();
           newPacket.m_TimeTosavedOnBuffer = Now ();
@@ -242,7 +251,7 @@ ApplicationSink::ReadPacketOnBuffer ()
                   std::string ruta = std::string (SecundariosTag.GetBufferRoute (),
                                                   SecundariosTag.GetBufferRoute () +
                                                       SecundariosTag.GetSizeBufferRoute ()) +
-                                     "," + std::to_string (GetNode ()->GetId ());
+                                     std::to_string (GetNode ()->GetId ());
                   //std::string ruta = std::string (buffer, buffer + packet->GetSize ()) + "," +
                   //                   std::to_string (GetNode ()->GetId ());
 
@@ -251,29 +260,30 @@ ApplicationSink::ReadPacketOnBuffer ()
                       std::cout << ruta[i];
                     }
                   std::cout << std::endl;*/
-
+                  m_SatisfaccionG += SecundariosTag.GetSL ();
                   SinkTag.SetNodeId (SecundariosTag.GetNodeId ());
                   SinkTag.setCopiaID (SecundariosTag.GetcopiaID ());
-                  SinkTag.SetSG (m_SigmaG);
+                  SinkTag.SetSG (SecundariosTag.GetSL ());
                   SinkTag.SetSEQNumber (SecundariosTag.GetSEQNumber ());
                   SinkTag.SetTimestamp (SecundariosTag.GetTimestamp () + TimeInThisNode);
                   SinkTag.SetBufferRoute ((uint8_t *) ruta.c_str ());
                   SinkTag.SetSizeBufferRoute (ruta.length ());
 
-                  //std::cout<<"Aqui me quedo11:"<<std::endl;
                   PacketToReSend->AddPacketTag (SinkTag);
                   //packet->AddPacketTag (SinkTag);
                   //std::cout<<"Aqui me quedo2"<<std::endl;
-
                   //ImprimeTabla();
-                  //std::cout << "Recibi paquete en sink222 : " << SinkTag.GetSEQNumber () << " | "
-                  //          << Now ().GetSeconds () << std::endl;
+
                   Guarda_Paquete_para_ACK (
                       PacketToReSend,
                       TimeInThisNode); //En este punto se almacena en memoria el paquete
                   //m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (NIC));
                   //m_wifiDevice->Send (PacketToReSend, Mac48Address::GetBroadcast (), 0x88dc);
                   //std::cout << "Sink::ReadPacketOnBuffer2 " << std::endl;
+                  std::cout << "Numero de paquetes recibidos en el Sink: "
+                            << m_Tabla_paquetes_ACK.size () << " SG= "
+                            << std::to_string (m_SatisfaccionG / m_Tabla_paquetes_ACK.size ())
+                            << std::endl;
                 }
               else
                 {
@@ -412,8 +422,7 @@ ApplicationSink::BuscaSEQEnTabla (u_long SEQ, uint32_t IDcreador, uint32_t IDCop
     {
       SinkDataTag SinkTAg;
       it->m_packet->PeekPacketTag (SinkTAg);
-      if (SinkTAg.GetSEQNumber () == SEQ && SinkTAg.GetNodeId () == IDcreador &&
-          SinkTAg.GetcopiaID () == IDCopia)
+      if (SinkTAg.GetSEQNumber () == SEQ && SinkTAg.GetNodeId () == IDcreador)
         {
           find = true;
           break;
@@ -432,8 +441,7 @@ ApplicationSink::Entregado (u_long SEQ, uint32_t IDcreador, uint32_t IDCopia)
     {
       SinkDataTag SinkTAg;
       it->m_packet->PeekPacketTag (SinkTAg);
-      if (SinkTAg.GetSEQNumber () == SEQ && SinkTAg.GetNodeId () == IDcreador &&
-          SinkTAg.GetcopiaID () == IDCopia)
+      if (SinkTAg.GetSEQNumber () == SEQ && SinkTAg.GetNodeId () == IDcreador)
         {
           find = true;
           break;
@@ -452,7 +460,8 @@ ApplicationSink::ImprimeTabla ()
       SinkDataTag Sinktag;
       it->m_packet->PeekPacketTag (Sinktag);
       std::cout << " SEQnumber: " << Sinktag.GetSEQNumber ()
-                << "\t Nodo que envia: " << Sinktag.GetNodeId () << std::endl;
+                << "\t Nodo que envia: " << Sinktag.GetNodeId ()
+                << "\t SL: " << std::to_string (Sinktag.GetSG ()) << std::endl;
     }
 }
 void // Esta funcion es llamada desde el main
