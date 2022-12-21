@@ -72,7 +72,7 @@ CustomApplicationPnodes::StartApplication ()
 
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-      Time random_offset = MicroSeconds (rand->GetValue (50, 200));
+      Time random_offset = MilliSeconds (rand->GetValue (50, 200));
       Simulator::Schedule (Seconds (0.1)+random_offset, &CustomApplicationPnodes::BroadcastInformation, this);
     }
   else

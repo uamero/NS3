@@ -284,8 +284,8 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   uint32_t n_iteracion = 0;
-  uint32_t n_SecundariosA = 10; //Numero de nodos alarmados en la red
-  uint32_t n_SecundariosB = 200; //Numero de nodos ruteadores en la red
+  uint32_t n_SecundariosA = 25; //Numero de nodos alarmados en la red
+  uint32_t n_SecundariosB = 225; //Numero de nodos ruteadores en la red
   uint32_t n_Primarios = 9; //Numero de estaciones base secundarias en la red
   uint32_t n_Sink = 1; //Numero de nodos Sink en la red
   Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
@@ -304,11 +304,11 @@ main (int argc, char *argv[])
   double intervalA = 20; //intervalo de broadcast
   //uint16_t N_channels = 1; //valor preestablecido para los canales
   uint32_t n_Packets_A_Enviar =
-      10; //numero de paquetes a ser creados por cada uno de los nodos generadores
+      1; //numero de paquetes a ser creados por cada uno de los nodos generadores
   uint32_t TP = 20;
   std::string CSVFile = "default.csv";
   bool StartSimulation = true;
-
+  bool mebi = false;
   cmd.AddValue ("t", "Tiempo de simulacion", simTime);
   cmd.AddValue ("Seed", "Semilla de la simulacion", Semilla_Sim);
   cmd.AddValue ("nit", "Numero de iteraciones", n_iteracion);
@@ -323,6 +323,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("nch", "Numero de canales a instalar", n_channels);
   cmd.AddValue ("StartSim", "Comienza un escenario de simulación nuevo", StartSimulation);
   cmd.AddValue ("pO", "Porcentaje de ocupacion", porcentajeOcupacion);
+  cmd.AddValue ("mebi", "Mecanismo de encaminamiento", mebi);
   cmd.AddValue ("CSVFile",
                 "Nombre del archivo CSV donde se almacenaran los resultados de la simulación",
                 CSVFile);
@@ -791,13 +792,13 @@ main (int argc, char *argv[])
 
       wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                               DoubleValue (200));
+                                               DoubleValue (150));
     }
   else
     {
       wifiChannelPrimarios.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
       wifiChannelPrimarios.AddPropagationLoss ("ns3::RangePropagationLossModel", "MaxRange",
-                                               DoubleValue (200));
+                                               DoubleValue (150));
     }
   std::list<uint32_t> List_RangeOfChannels;
   WifiMacHelper wifiMac;
@@ -995,6 +996,7 @@ main (int argc, char *argv[])
       app_i->SetChannels (n_channels);
       app_i->iniciaCanales ();
       app_i->CreaBuffersCanales ();
+      app_i->m_mebi = mebi;
       SecundariosB.Get (i)->AddApplication (app_i);
       anim.UpdateNodeColor (SecundariosB.Get (i)->GetId (), 0, 0, 255); //Azules
       anim.UpdateNodeImage (SecundariosB.Get (i)->GetId (), img_phone);

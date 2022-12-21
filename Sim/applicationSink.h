@@ -58,7 +58,6 @@ public:
   bool
   VerificaVisitados (); //funcion para iterar sobre todos los canales y ver si ya fueron visitados
   void ReiniciaVisitados (); //funcion para comenzar la iteraci[n desde el primer canal
-  bool Entregado (u_long SEQ, uint32_t IDcreador, uint32_t IDCopia);
   /** \brief Update a neighbor's last contact time, or add a new neighbor
              */
 

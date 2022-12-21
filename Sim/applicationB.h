@@ -38,10 +38,11 @@ typedef struct
   Time retardo;
   double V_Preferencia;
   uint32_t m_Cantidad_n_visitados;
+  Time offset;
 } ST_ReenviosB;
 typedef struct
 {
-  double N_EE, N_CD, N_NV,
+  double N_EE,
       N_retardo; //CD-> Canales disponibles EE->Efectividad de entrega NV->Nodos Visitados retardo->Tiempo en este nodo
 } ST_MatrizR;
 typedef struct
@@ -133,9 +134,10 @@ public:
   std::string operacionORString (std::string str1, std::string str2);
   void SetChannels (uint32_t channels);
   void VerificaNodoEntrega (std::string ruta);
+  void EncuentraMejorCanal();
   uint32_t VerificaNodosVisitados (std::string ruta);
   uint32_t m_collissions;
-
+  bool m_mebi;
 private:
   /** \brief This is an inherited function. Code that executes once the application starts
              */
@@ -146,6 +148,7 @@ private:
   std::list<ST_CanalesB> m_Canales_disponibles; /**> Lista de paquetes a reenviar*/
   std::list<ST_VecinosB> m_vecinos_list; /**> Lista de paquetes a reenviar*/
   std::list<uint32_t> m_Canales_Para_Utilizar;
+  std::vector<uint32_t> m_Mejores_Canales_Para_Utilizar;
   Time m_time_limit; /**< Time limit to keep neighbors in a list */
   WifiMode m_mode; /**< data rate used for broadcasts */
   std::list<ST_bufferOfCannelsB>
@@ -158,9 +161,10 @@ private:
   double m_n_entregados;
   uint32_t m_NTP;
   uint32_t m_NVmax;
+  uint32_t m_PacketSize;
   double m_retardo_acumulado;
   double m_RetardoMax;
-  double m_W[4] = {0.4, 0.3, 0.2, 0.1};
+  std::vector<uint32_t>m_mejoresCanales;
 };
 } // namespace ns3
 

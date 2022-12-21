@@ -38,7 +38,7 @@ CustomApplication::GetInstanceTypeId () const
 CustomApplication::CustomApplication () : m_sendEvent ()
 {
   m_broadcast_time = Seconds (20); //every 1s
-  m_packetSize = 512; //1000 bytes
+  m_packetSize = 512; // bytes
   m_Tiempo_de_reenvio = Seconds (20); //Tiempo para reenviar los paquetes
   m_time_limit = Seconds (5); //Tiempo limite para los nodos vecinos
   //m_mode = WifiMode ("OfdmRate6MbpsBW10MHz");
@@ -84,8 +84,8 @@ CustomApplication::StartApplication ()
     {
       //Let's create a bit of randomness with the first broadcast packet time to avoid collision
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-      Time random_offset = MicroSeconds (rand->GetValue (10, 200));
-      m_sendEvent = Simulator::Schedule (Seconds (.2) + random_offset,
+      Time random_offset = MilliSeconds (rand->GetValue (10, 200));
+      m_sendEvent = Simulator::Schedule (Seconds (.5) + random_offset,
                                          &CustomApplication::BroadcastInformation, this);
       //Simulator::Schedule (Seconds (.2) + random_offset, &CustomApplication::ReenviaPaquete, this);
       //Simulator::Schedule (m_broadcast_time + random_offset,
@@ -287,7 +287,7 @@ CustomApplication::BroadcastInformation ()
                   // m_wifiDevice = DynamicCast<WifiNetDevice> (GetNode ()->GetDevice (*_it));
                   //m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (), 0x88dc);
                   // std::cout<<"Nodo: "<<GetNode()->GetId()<<" Genero nuevo paquete correctamente A "<< Now().GetSeconds() << std::endl;
-                  break;
+                  //break;
                 }
             }
           break;
@@ -494,8 +494,7 @@ CustomApplication::SendPacket ()
             }
           if (!find)
             {
-
-              break;
+              //break;
             }
           //std::cout << "Aqui me quedo 2" << std::endl;
 
@@ -531,10 +530,20 @@ CustomApplication::SendPacket ()
                       break; //Si el paquete ya está entregado no se envia el paquete
                     }
 
-                  m_wifiDevice = DynamicCast<WifiNetDevice> (
-                      GetNode ()->GetDevice (SecundariosTag.GetChanels ()));
-                  m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (),
-                                      0x88dc); //aqui se hace el broadcast en un canal
+                  for (std::list<uint32_t>::iterator FreeChIt = m_Canales_Para_Utilizar.begin ();
+                       FreeChIt != m_Canales_Para_Utilizar.end (); FreeChIt++)
+                    {
+                      //std::cout << "Canal << " << (*FreeChIt) << std::endl;
+                      SecundariosTag.SetChanels ((*FreeChIt));
+                      packet->ReplacePacketTag (SecundariosTag);
+                      m_wifiDevice =
+                          DynamicCast<WifiNetDevice> (GetNode ()->GetDevice ((*FreeChIt)));
+                      m_wifiDevice->Send (packet->Copy (), Mac48Address::GetBroadcast (), 0x88dc);
+                    }
+                  //m_wifiDevice = DynamicCast<WifiNetDevice> (
+                  //    GetNode ()->GetDevice (SecundariosTag.GetChanels ()));
+                  //m_wifiDevice->Send (packet, Mac48Address::GetBroadcast (),
+                  //                    0x88dc); //aqui se hace el broadcast en un canal
                   /*std::cout << Now ().GetSeconds () << " | "
                             << "Nodo: " << GetNode ()->GetId ()
                             << " El retardo de este paquete enviado es: "
@@ -976,7 +985,7 @@ CustomApplication::CheckBuffer ()
       /*std::cout << "Aqui me quedo CheckBuffer1" << std::endl;*/
       ReadPacketOnBuffer ();
       Ptr<UniformRandomVariable> rand = CreateObject<UniformRandomVariable> ();
-      Time random_offset = MicroSeconds (rand->GetValue (10, 200));
+      Time random_offset = MicroSeconds (rand->GetValue (10, 1000));
       Simulator::Schedule (Seconds ((8.0 * 1024.0) / (m_mode.GetDataRate (20))) + random_offset,
                            &CustomApplication::SendPacket, this);
       /*Simulator::Schedule (Seconds ((double) (8 * 1000) / (m_mode.GetDataRate (20))),
@@ -1251,7 +1260,7 @@ CustomApplication::CanalesDisponibles ()
         }
     }
   //std::cout << canales << "Se hace bienA: " << m_Canales_Para_Utilizar.size ()
-  //         << "Time: " << Now ().GetSeconds () << std::endl;
+  //          << " Time: " << Now ().GetSeconds () << std::endl;
   // std::cout << Now().GetSeconds() <<" 222Nodo A: " <<m_Canales_Para_Utilizar.size()<<" "<<canales<< std::endl;
 }
 bool
